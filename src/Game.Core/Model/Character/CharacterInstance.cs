@@ -492,8 +492,10 @@ public sealed class CharacterInstance
     public double GetWeaponBonusValue(WeaponType weaponType, double baseValue) =>
         GetBucket(Projection.Affixes.WeaponModifierBuckets, weaponType).Evaluate(baseValue);
 
-    public double GetLegendChanceValue(string skillId, double baseValue) =>
-        GetBucket(Projection.Affixes.LegendChanceModifierBuckets, skillId).Evaluate(baseValue);
+    public double GetLegendChanceValue(string legendSkillId, double baseValue) =>
+        GetBucket(Projection.Affixes.LegendChanceModifierBuckets, new LegendSkillChanceModifierKey(null))
+            .Combine(GetBucket(Projection.Affixes.LegendChanceModifierBuckets, new LegendSkillChanceModifierKey(legendSkillId)))
+            .Evaluate(baseValue);
 
     public int GetSkillTargetingValue(SkillInstance skill, SkillTargetingField field, int baseValue) =>
         Projection.Affixes.EvaluateSkillTargeting(skill, field, baseValue);

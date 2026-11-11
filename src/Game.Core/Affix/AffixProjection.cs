@@ -50,7 +50,7 @@ public sealed class AffixProjection
         new ReadOnlyDictionary<string, ModifierBucket>(new Dictionary<string, ModifierBucket>()),
         new ReadOnlyDictionary<WeaponType, ModifierBucket>(new Dictionary<WeaponType, ModifierBucket>()),
         Array.Empty<SkillTargetingModifierAffix>(),
-        new ReadOnlyDictionary<string, ModifierBucket>(new Dictionary<string, ModifierBucket>()));
+        new ReadOnlyDictionary<LegendSkillChanceModifierKey, ModifierBucket>(new Dictionary<LegendSkillChanceModifierKey, ModifierBucket>()));
 
     public AffixProjection(
         IReadOnlySet<TraitId> traits,
@@ -59,7 +59,7 @@ public sealed class AffixProjection
         IReadOnlyDictionary<string, ModifierBucket> skillModifierBuckets,
         IReadOnlyDictionary<WeaponType, ModifierBucket> weaponModifierBuckets,
         IReadOnlyList<SkillTargetingModifierAffix> targetingModifiers,
-        IReadOnlyDictionary<string, ModifierBucket> legendChanceModifierBuckets)
+        IReadOnlyDictionary<LegendSkillChanceModifierKey, ModifierBucket> legendChanceModifierBuckets)
     {
         Traits = traits;
         HooksByTiming = hooksByTiming;
@@ -93,7 +93,7 @@ public sealed class AffixProjection
 
         return checked((int)Math.Round(bucket.Evaluate(baseValue)));
     }
-    public IReadOnlyDictionary<string, ModifierBucket> LegendChanceModifierBuckets { get; }
+    public IReadOnlyDictionary<LegendSkillChanceModifierKey, ModifierBucket> LegendChanceModifierBuckets { get; }
 }
 
 public sealed class CharacterProjection

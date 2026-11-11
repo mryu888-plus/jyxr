@@ -65,7 +65,8 @@ public sealed record SkillBonusModifierAffix(string SkillId, ModifierValue Value
 
 public sealed record WeaponBonusModifierAffix(WeaponType WeaponType, ModifierValue Value) : AffixDefinition;
 
-public sealed record LegendSkillChanceModifierAffix(string SkillId, ModifierValue Value) : AffixDefinition;
+/// <summary>奥义触发率修正。SkillId 为奥义 ID；为 null 时作用于全部奥义（与指定奥义的修正合并后计算）。</summary>
+public sealed record LegendSkillChanceModifierAffix(string? SkillId, ModifierValue Value) : AffixDefinition;
 
 public sealed record BuffLevelStatModifierAffix(
     StatType Stat,

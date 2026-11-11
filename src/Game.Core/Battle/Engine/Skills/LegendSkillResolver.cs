@@ -57,10 +57,6 @@ public sealed class LegendSkillResolver
     {
         var wuxingMultiplier = 1d + owner.GetStat(StatType.Wuxing) / 150d * 0.2d;
         var chanceMultiplier = owner.GetLegendChanceValue(definition.Id, wuxingMultiplier);
-        if (owner.Traits.Contains(TraitId.BroadLearning))
-        {
-            chanceMultiplier += 0.5d;
-        }
 
         var chance = definition.Probability * chanceMultiplier;
         return Math.Clamp(chance, 0d, 1d);

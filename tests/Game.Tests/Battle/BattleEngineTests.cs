@@ -1171,7 +1171,7 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
-    public void CastSkill_BroadLearningTraitAddsLegendChanceMultiplier()
+    public void CastSkill_GlobalLegendChanceModifierAppliesToEveryLegendSkill()
     {
         var skillDefinition = TestContentFactory.CreateExternalSkill(
             "strike",
@@ -1193,7 +1193,7 @@ public sealed class BattleEngineTests
         {
             Id = "broad_learning",
             Name = "博览群书",
-            Affixes = [new TraitAffix(TraitId.BroadLearning)],
+            Affixes = [new LegendSkillChanceModifierAffix(null, new ModifierValue(ModifierOp.PostAdd, 0.5d))],
         };
         var hero = CreateUnit(
             "hero",

@@ -66,6 +66,9 @@ public enum SkillTargetingField
 }
 
 
+/// <summary>奥义触发率修正桶的键；LegendSkillId 为 null 表示作用于全部奥义。</summary>
+public readonly record struct LegendSkillChanceModifierKey(string? LegendSkillId);
+
 public enum BattleRecoveryKind
 {
     [JsonStringEnumMemberName("hp")]
@@ -81,7 +84,6 @@ public enum TraitId
     CanUseItemOnAlly,
     IgnoreItemCooldown,
     Ghost,
-    BroadLearning,
     DoubleExperienceGain,
     DoubleSkillEquipmentTenDimensionAffixes,
     IncreaseInternalSkillYangAffinity,

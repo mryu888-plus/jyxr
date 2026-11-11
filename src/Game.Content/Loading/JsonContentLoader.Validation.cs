@@ -736,6 +736,7 @@ public sealed partial class JsonContentLoader
             $"{ownerName} has battle hook '{hook.Timing}' without effects, float text, or speech.");
         ValidateBattleHookFloatText(hook, ownerName);
         ValidateBattleHookSpeech(hook, ownerName);
+        ValidateHitResolutionHookSide(hook, ownerName);
 
         foreach (var condition in hook.Conditions)
         {
@@ -957,6 +958,27 @@ public sealed partial class JsonContentLoader
                     throw new InvalidOperationException($"{ownerName} has unsupported battle hook effect '{effect.GetType().Name}'.");
             }
         }
+    }
+
+    /// <summary>
+    /// BeforeHitResolved 只处理命中结果确定前的闪避、破闪避与失手。攻击方在该时机只会触发判定"未命中"或不看命中状态的 hook，
+    /// 因此"命中"条件只对受击方有意义：必须显式限定为 target，命中确认后的追加效果应写在 OnHitConfirmed。
+    /// </summary>
+    private static void ValidateHitResolutionHookSide(HookAffix hook, string ownerName)
+    {
+        if (hook.Timing != HookTiming.BeforeHitResolved ||
+            !hook.Conditions.OfType<ContextHitStateBattleHookConditionDefinition>()
+                .Any(static condition => condition.State == BattleHitState.Hit))
+        {
+            return;
+        }
+
+        var roles = hook.Conditions.OfType<ContextUnitRoleBattleHookConditionDefinition>()
+            .Select(static condition => condition.Role)
+            .ToHashSet();
+        Ensure(roles.Count == 1 && roles.Contains(BattleHookContextUnitRole.Target),
+            $"{ownerName} battle hook '{HookTiming.BeforeHitResolved}' checks context_hit_state 'hit' on the attacking side; " +
+            $"restrict it to context_unit_role 'target' or move post-hit effects to '{HookTiming.OnHitConfirmed}'.");
     }
 
     private static void ValidateBattleHookEffectTiming(
