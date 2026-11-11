@@ -1251,6 +1251,13 @@ public sealed partial class JsonContentLoader
                             $"Item '{item.Id}' add_stats effect contains a zero change.");
                         break;
 
+                    case ForgetSkillItemUseEffectDefinition:
+                        Ensure(item is NormalItemDefinition && item.Type == ItemType.Utility,
+                            $"Item '{item.Id}' forget_skill effect is only supported by utility items.");
+                        Ensure(item.UseEffects is { Count: 1 },
+                            $"Item '{item.Id}' forget_skill effect must be the item's only use effect.");
+                        break;
+
                     case RunStoryItemUseEffectDefinition runStory:
                         Ensure(!string.IsNullOrWhiteSpace(runStory.StoryId),
                             $"Item '{item.Id}' run_story effect is missing storyId.");
@@ -1258,7 +1265,7 @@ public sealed partial class JsonContentLoader
                             $"Item '{item.Id}' references missing story segment '{runStory.StoryId}'.");
                         Ensure(item is NormalItemDefinition &&
                                item.Type is ItemType.SkillBook or ItemType.SpecialSkillBook or
-                                   ItemType.TalentBook or ItemType.Booster or ItemType.Utility,
+                                   ItemType.TalentBook or ItemType.Booster or ItemType.Utility or ItemType.QuestItem,
                             $"Item '{item.Id}' run_story effect is only supported by out-of-battle normal items.");
                         Ensure(item.UseEffects is { Count: 1 },
                             $"Item '{item.Id}' run_story effect must be the item's only use effect.");
@@ -1346,7 +1353,8 @@ public sealed partial class JsonContentLoader
             AddStatsItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
             ReduceMaxResourceRatioItemUseEffectDefinition or
-            RunStoryItemUseEffectDefinition;
+            RunStoryItemUseEffectDefinition or
+            ForgetSkillItemUseEffectDefinition;
 
     private static void ValidateShops(InMemoryContentRepository repository)
     {

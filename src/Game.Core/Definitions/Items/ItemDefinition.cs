@@ -65,6 +65,7 @@ public sealed record GenderItemRequirementDefinition(
 [JsonDerivedType(typeof(SetGenderItemUseEffectDefinition), "set_gender")]
 [JsonDerivedType(typeof(ReduceMaxResourceRatioItemUseEffectDefinition), "reduce_max_resource_ratio")]
 [JsonDerivedType(typeof(RunStoryItemUseEffectDefinition), "run_story")]
+[JsonDerivedType(typeof(ForgetSkillItemUseEffectDefinition), "forget_skill")]
 public abstract record ItemUseEffectDefinition;
 
 public sealed record AddBuffItemUseEffectDefinition(
@@ -117,3 +118,6 @@ public sealed record ReduceMaxResourceRatioItemUseEffectDefinition(
 
 public sealed record RunStoryItemUseEffectDefinition(
     string StoryId) : ItemUseEffectDefinition;
+
+/// <summary>功能道具：由玩家选择目标角色的一门武学遗忘（外功、未装备的内功、特殊技能），如原版“洗练书”。</summary>
+public sealed record ForgetSkillItemUseEffectDefinition : ItemUseEffectDefinition;

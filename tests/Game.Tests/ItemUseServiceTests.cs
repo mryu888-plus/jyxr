@@ -790,6 +790,121 @@ public sealed class ItemUseServiceTests
         Assert.Empty(state.Inventory.Entries);
     }
 
+    [Fact]
+    public void Analyze_QuestItemWithoutStoryEffectCannotBeUsed()
+    {
+        var token = CreateItem("token", ItemType.QuestItem, []);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = CreateStateWithHero(heroDefinition, out _);
+        state.Inventory.AddItem(token);
+        var session = new GameSession(state, TestContentFactory.CreateRepository(characters: [heroDefinition], items: [token]));
+
+        var analysis = session.ItemUseService.Analyze(state.Inventory.GetStack(token));
+
+        Assert.False(analysis.IsSupported);
+        Assert.Equal("剧情物品只能在剧情中使用。", analysis.Message);
+    }
+
+    [Fact]
+    public void Analyze_QuestItemWithRunStoryEffectCanBeUsed()
+    {
+        var map = CreateItem("treasure_map", ItemType.QuestItem, [new RunStoryItemUseEffectDefinition("dig")]);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = CreateStateWithHero(heroDefinition, out _);
+        state.Inventory.AddItem(map);
+        var session = new GameSession(state, TestContentFactory.CreateRepository(characters: [heroDefinition], items: [map]));
+
+        Assert.True(session.ItemUseService.Analyze(state.Inventory.GetStack(map)).IsSupported);
+    }
+
+    [Fact]
+    public async Task Use_ForgetSkillItem_RemovesSelectedSkillExceptEquippedInternalAndConsumes()
+    {
+        var palm = TestContentFactory.CreateExternalSkill("palm");
+        var equippedInner = TestContentFactory.CreateInternalSkill("equipped_inner");
+        var spareInner = TestContentFactory.CreateInternalSkill("spare_inner");
+        var book = CreateItem("wash_book", ItemType.Utility, [new ForgetSkillItemUseEffectDefinition()], consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            externalSkills: [new InitialExternalSkillEntryDefinition(palm, Level: 3)],
+            internalSkills:
+            [
+                new InitialInternalSkillEntryDefinition(equippedInner, Level: 3, Equipped: true),
+                new InitialInternalSkillEntryDefinition(spareInner, Level: 3),
+            ]);
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(book);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            externalSkills: [palm],
+            internalSkills: [equippedInner, spareInner],
+            items: [book]);
+        var host = new ForgetHost(candidates => candidates.Single(skill => skill.Id == "spare_inner"));
+        var session = new GameSession(state, repository, host);
+
+        var result = await session.ItemUseService.UseAsync(state.Inventory.GetStack(book), hero.Id);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(["palm", "spare_inner"], host.LastCandidates.Select(static skill => skill.Id));
+        Assert.DoesNotContain(hero.GetInternalSkills(), static skill => skill.Id == "spare_inner");
+        Assert.Contains(hero.GetInternalSkills(), static skill => skill.Id == "equipped_inner");
+        Assert.False(state.Inventory.ContainsStack(book));
+    }
+
+    [Fact]
+    public async Task Use_ForgetSkillItem_CancelKeepsItemAndSkills()
+    {
+        var palm = TestContentFactory.CreateExternalSkill("palm");
+        var book = CreateItem("wash_book", ItemType.Utility, [new ForgetSkillItemUseEffectDefinition()], consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            externalSkills: [new InitialExternalSkillEntryDefinition(palm, Level: 3)]);
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(book);
+        var repository = TestContentFactory.CreateRepository(characters: [heroDefinition], externalSkills: [palm], items: [book]);
+        var session = new GameSession(state, repository, new ForgetHost(_ => null));
+
+        var result = await session.ItemUseService.UseAsync(state.Inventory.GetStack(book), hero.Id);
+
+        Assert.False(result.Success);
+        Assert.Single(hero.GetExternalSkills());
+        Assert.True(state.Inventory.ContainsStack(book));
+    }
+
+    [Fact]
+    public void AnalyzeTarget_ForgetSkillItemDisablesCharacterWithoutForgettableSkills()
+    {
+        var book = CreateItem("wash_book", ItemType.Utility, [new ForgetSkillItemUseEffectDefinition()], consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(book);
+        var session = new GameSession(state, TestContentFactory.CreateRepository(characters: [heroDefinition], items: [book]));
+
+        var candidate = session.ItemUseService.AnalyzeTarget(state.Inventory.GetStack(book), hero);
+
+        Assert.False(candidate.CanUse);
+        Assert.Equal("没有可以遗忘的武学", candidate.Reason);
+    }
+
+    private sealed class ForgetHost(Func<IReadOnlyList<Game.Core.Model.Skills.SkillInstance>, Game.Core.Model.Skills.SkillInstance?> select)
+        : IRuntimeHost, IItemUseRuntimeHost
+    {
+        public IReadOnlyList<Game.Core.Model.Skills.SkillInstance> LastCandidates { get; private set; } = [];
+
+        public ValueTask<Game.Core.Model.Skills.SkillInstance?> SelectSkillToForgetAsync(
+            CharacterInstance character,
+            IReadOnlyList<Game.Core.Model.Skills.SkillInstance> candidates,
+            CancellationToken cancellationToken)
+        {
+            LastCandidates = candidates;
+            return ValueTask.FromResult(select(candidates));
+        }
+
+        public ValueTask DialogueAsync(DialogueContext dialogue, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<int> ChooseOptionAsync(ChoiceContext choice, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+
     private static GameState CreateStateWithHero(
         CharacterDefinition heroDefinition,
         out Game.Core.Model.Character.CharacterInstance hero)

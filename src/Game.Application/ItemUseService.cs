@@ -1,6 +1,7 @@
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Core.Model.Character;
+using Game.Core.Model.Skills;
 using Game.Application.Formatters;
 
 namespace Game.Application;
@@ -205,6 +206,11 @@ public sealed class ItemUseService
             return _session.PracticeBookService.Equip(target, entry.Definition);
         }
 
+        if (support.Effects is [ForgetSkillItemUseEffectDefinition])
+        {
+            return await ForgetSkillAsync(entry, target, cancellationToken);
+        }
+
         if (support.Effects is [RunStoryItemUseEffectDefinition runStory])
         {
             CommitSuccessfulUse(entry);
@@ -230,6 +236,65 @@ public sealed class ItemUseService
         }
 
         return result;
+    }
+
+    /// <summary>可被功能道具遗忘的武学：外功、未装备的内功、特殊技能（与原版洗练书一致）。</summary>
+    public static IReadOnlyList<SkillInstance> GetForgettableSkills(CharacterInstance character)
+    {
+        ArgumentNullException.ThrowIfNull(character);
+        return character.GetSpecialSkills().Cast<SkillInstance>()
+            .Concat(character.GetExternalSkills())
+            .Concat(character.GetInternalSkills().Where(static skill => !skill.IsEquipped))
+            .ToArray();
+    }
+
+    private async Task<ItemUseResult> ForgetSkillAsync(
+        InventoryEntry entry,
+        CharacterInstance target,
+        CancellationToken cancellationToken)
+    {
+        var candidates = GetForgettableSkills(target);
+        if (candidates.Count == 0)
+        {
+            return ItemUseResult.Failed("没有可以遗忘的武学。");
+        }
+
+        if (_session.StoryService.Host is not IItemUseRuntimeHost host)
+        {
+            throw new InvalidOperationException("Forgetting skills requires an item-use runtime host.");
+        }
+
+        var state = State;
+        var selected = await host.SelectSkillToForgetAsync(target, candidates, cancellationToken);
+        if (selected is null)
+        {
+            return ItemUseResult.Failed("已取消。");
+        }
+
+        if (!ReferenceEquals(state, State) ||
+            !candidates.Contains(selected) ||
+            !State.Inventory.Entries.Any(candidate => ReferenceEquals(candidate, entry)))
+        {
+            return ItemUseResult.Failed("选择已失效。");
+        }
+
+        switch (selected)
+        {
+            case ExternalSkillInstance external:
+                _session.CharacterService.RemoveExternalSkill(target, external.Id);
+                break;
+            case InternalSkillInstance internalSkill:
+                _session.CharacterService.RemoveInternalSkill(target, internalSkill.Id);
+                break;
+            case SpecialSkillInstance special:
+                _session.CharacterService.RemoveSpecialSkill(target, special.Id);
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported skill kind '{selected.GetType().Name}'.");
+        }
+
+        CommitSuccessfulUse(entry);
+        return ItemUseResult.Succeeded($"【{target.Name}】遗忘了【{selected.Name}】");
     }
 
     public void CommitSuccessfulUse(InventoryEntry entry)
@@ -337,9 +402,10 @@ public sealed class ItemUseService
         {
             return ItemUseSupport.Unsupported("消耗品只能在战斗中使用。");
         }
-        if (item.Type == ItemType.QuestItem)
+        if (item.Type == ItemType.QuestItem && item.UseEffects is not [RunStoryItemUseEffectDefinition])
         {
-            return ItemUseSupport.Unsupported("剧情物品暂不可主动使用。");
+            // 原版剧情物品只在剧情中检查持有，不能主动使用；配置了 run_story 的剧情物品才可主动触发剧情。
+            return ItemUseSupport.Unsupported("剧情物品只能在剧情中使用。");
         }
         if (item.UseEffects.Count == 0)
         {
@@ -361,7 +427,8 @@ public sealed class ItemUseService
             AddStatsItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
             ReduceMaxResourceRatioItemUseEffectDefinition or
-            RunStoryItemUseEffectDefinition;
+            RunStoryItemUseEffectDefinition or
+            ForgetSkillItemUseEffectDefinition;
 
     private string? ValidateRequirements(ItemDefinition item, CharacterInstance target)
     {
@@ -421,6 +488,14 @@ public sealed class ItemUseService
         {
             switch (effect)
             {
+                case ForgetSkillItemUseEffectDefinition:
+                    if (GetForgettableSkills(target).Count == 0)
+                    {
+                        return EffectTargetAnalysis.Failed("没有可以遗忘的武学");
+                    }
+
+                    applicableEffects.Add(effect);
+                    break;
                 case GrantExternalSkillItemUseEffectDefinition externalSkill:
                 {
                     if (!externalSkillIds.Add(externalSkill.SkillId))

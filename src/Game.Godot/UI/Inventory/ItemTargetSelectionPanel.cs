@@ -135,7 +135,8 @@ public partial class ItemTargetSelectionPanel : JyPanel
 			return;
 		}
 
-		var runsStory = entry.Definition.UseEffects is [RunStoryItemUseEffectDefinition];
+		// 触发剧情或需要再选择武学的物品要先收起背包界面，交给剧情/选项面板展示。
+		var runsStory = entry.Definition.UseEffects is [RunStoryItemUseEffectDefinition] or [ForgetSkillItemUseEffectDefinition];
 		if (runsStory)
 		{
 			UIRoot.Instance.CloseMainPanel();

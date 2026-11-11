@@ -66,6 +66,8 @@
 
 背包选人界面支持选择使用数量。`ItemUseService` 对可消耗的场外堆叠物品逐件校验、应用效果和扣除库存，返回实际使用数量；条件不再满足或出现未经确认的失效效果时停止，已完成的使用保留。装备、不消耗的物品及剧情效果仅允许单次使用，战斗内物品仍遵循战斗行动规则。
 
+场外主动使用按物品类型区分语义（与原版 MapUI 一致）：消耗品只能在战斗中使用；剧情物品默认只在剧情中检查持有，不能主动使用，只有唯一效果为 `run_story` 的剧情物品可以主动触发剧情（目标角色写入 `item_target` 变量）；功能道具通过效果表达行为，例如原版“刀”是限男性的 `grant_talent(阉人)` + `set_gender(eunuch)` + 两个 `reduce_max_resource_ratio`，原版“洗练书”是 `forget_skill`：由宿主（`IItemUseRuntimeHost`）让玩家从外功、未装备内功和特殊技能中选一门遗忘，取消不消耗物品，选择完成后确认状态未被读档替换才生效。
+
 角色派生属性通过 `CharacterInstance.RebuildSnapshot()` 收集装备、天赋和满足条件的技能 affix，再由 resolver 展开。外功激活状态不决定其被动 affix 是否生效；内功 affix 是否要求装备由 `requiresEquippedInternalSkill` 明确表达。新增 affix 来源时要同时检查内容引用解析与角色快照收集。
 
 新游戏与下一周目由 `SessionFlowService` 和 [NewGameStateFactory](../src/Game.Application/NewGameStateFactory.cs) 装配。下一周目保留银两和储物箱、重建初始队伍；全局元宝保留在 GameProfile。
