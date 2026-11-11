@@ -27,7 +27,7 @@ internal sealed class ShiftingStarsReflectionBattleEffectHandler
             return;
         }
 
-        var chance = context.Unit.Character.HasEffectiveTalent(parameters.FamilyTalentId)
+        var chance = context.Unit.Character.HasTalent(parameters.FamilyTalentId)
             ? parameters.FamilyChance
             : parameters.Chance;
         if (!Probability.RollChance(context.Random, chance))

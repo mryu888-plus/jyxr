@@ -19,8 +19,8 @@ internal static class BattleHookEvaluator
                 string.Equals(context.Buff.Definition.Id, buffId.BuffId, StringComparison.Ordinal),
             ContextBuffNegativeBattleHookConditionDefinition => context.Buff?.Definition.IsDebuff == true,
             ContextUnitHpRatioBattleHookConditionDefinition hpRatio => IsContextUnitHpRatio(context, hpRatio),
-            ContextUnitEffectiveTalentBattleHookConditionDefinition talent =>
-                talent.TalentIds.Any(context.Unit.Character.HasEffectiveTalent),
+            ContextUnitHasTalentBattleHookConditionDefinition talent =>
+                talent.TalentIds.Any(context.Unit.Character.HasTalent),
             ContextUnitEquippedInternalSkillBattleHookConditionDefinition internalSkill =>
                 internalSkill.InternalSkillIds.Any(id => string.Equals(
                     id,

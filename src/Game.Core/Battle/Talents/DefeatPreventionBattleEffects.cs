@@ -88,7 +88,7 @@ public sealed class EndlessFightingSpiritBattleEffectHandler
         }
 
         var guaranteed = context.GetAbilityUsageCount(parameters.AbilityId) == 0 &&
-            context.Unit.Character.HasEffectiveTalent(parameters.GuaranteedFirstTalentId);
+            context.Unit.Character.HasTalent(parameters.GuaranteedFirstTalentId);
         if (!guaranteed && !Probability.RollChance(context.Random, parameters.Chance))
         {
             return;

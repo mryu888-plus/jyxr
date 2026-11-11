@@ -364,7 +364,7 @@ public sealed class ItemUseService
                     }
                     break;
                 case TalentItemRequirementDefinition talent:
-                    if (!target.HasEffectiveTalent(talent.TalentId))
+                    if (!target.HasTalent(talent.TalentId))
                     {
                         return $"需要天赋「{talent.TalentId}」";
                     }
@@ -471,7 +471,7 @@ public sealed class ItemUseService
                     {
                         return EffectTargetAnalysis.Failed("物品包含重复的天赋学习效果");
                     }
-                    if (target.HasTalent(talent.TalentId))
+                    if (target.HasLearnedTalent(talent.TalentId))
                     {
                         skippedEffects.Add(effect);
                         break;

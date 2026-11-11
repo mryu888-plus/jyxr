@@ -29,7 +29,7 @@ public partial class CharacterTalentTab : Control
 			character.UnlockedTalents.Select(static talent => talent.Id),
 			StringComparer.Ordinal);
 		var talents = character.UnlockedTalents
-			.Concat(character.EffectiveTalents)
+			.Concat(character.PossessedTalents)
 			.GroupBy(static talent => talent.Id, StringComparer.Ordinal)
 			.Select(static group => group.First())
 			.OrderByDescending(talent => unlockedIds.Contains(talent.Id))

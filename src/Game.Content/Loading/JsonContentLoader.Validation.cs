@@ -812,17 +812,17 @@ public sealed partial class JsonContentLoader
                     }
 
                     break;
-                case ContextUnitEffectiveTalentBattleHookConditionDefinition talentCondition:
+                case ContextUnitHasTalentBattleHookConditionDefinition talentCondition:
                     Ensure(talentCondition.TalentIds.Count > 0,
-                        $"{ownerName} has battle hook '{hook.Timing}' effective talent condition without talentIds.");
+                        $"{ownerName} has battle hook '{hook.Timing}' has-talent condition without talentIds.");
                     foreach (var talentId in talentCondition.TalentIds)
                     {
                         Ensure(!string.IsNullOrWhiteSpace(talentId),
-                            $"{ownerName} has battle hook '{hook.Timing}' effective talent condition with empty talent id.");
+                            $"{ownerName} has battle hook '{hook.Timing}' has-talent condition with empty talent id.");
                         if (repository is not null)
                         {
                             Ensure(repository.Talents.ContainsKey(talentId),
-                                $"{ownerName} has battle hook '{hook.Timing}' effective talent condition referencing missing talent '{talentId}'.");
+                                $"{ownerName} has battle hook '{hook.Timing}' has-talent condition referencing missing talent '{talentId}'.");
                         }
                     }
 

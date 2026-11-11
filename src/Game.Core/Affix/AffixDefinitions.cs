@@ -174,7 +174,7 @@ public sealed record TraitAffix(TraitId TraitId) : AffixDefinition;
 [JsonDerivedType(typeof(ContextBuffIdBattleHookConditionDefinition), "context_buff_id")]
 [JsonDerivedType(typeof(ContextBuffNegativeBattleHookConditionDefinition), "context_buff_negative")]
 [JsonDerivedType(typeof(ContextUnitHpRatioBattleHookConditionDefinition), "context_unit_hp_ratio")]
-[JsonDerivedType(typeof(ContextUnitEffectiveTalentBattleHookConditionDefinition), "context_unit_effective_talent")]
+[JsonDerivedType(typeof(ContextUnitHasTalentBattleHookConditionDefinition), "context_unit_has_talent")]
 [JsonDerivedType(typeof(ContextUnitEquippedInternalSkillBattleHookConditionDefinition), "context_unit_equipped_internal_skill")]
 [JsonDerivedType(typeof(ContextUnitRelationBattleHookConditionDefinition), "context_unit_relation")]
 [JsonDerivedType(typeof(ContextUnitRoleBattleHookConditionDefinition), "context_unit_role")]
@@ -210,7 +210,8 @@ public sealed record ContextUnitHpRatioBattleHookConditionDefinition(
     public double? MaxExclusive { get; init; }
 }
 
-public sealed record ContextUnitEffectiveTalentBattleHookConditionDefinition(
+/// <summary>上下文单位拥有任一指定天赋（学会或被授予即可，被其它天赋替换的天赋也算拥有）。</summary>
+public sealed record ContextUnitHasTalentBattleHookConditionDefinition(
     IReadOnlyList<string> TalentIds) : BattleHookConditionDefinition;
 
 public sealed record ContextUnitEquippedInternalSkillBattleHookConditionDefinition(

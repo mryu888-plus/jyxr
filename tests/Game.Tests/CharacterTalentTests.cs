@@ -74,8 +74,8 @@ public sealed class CharacterTalentTests
 
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
 
-        Assert.True(character.HasEffectiveTalent("radiance"));
-        Assert.Contains(character.EffectiveTalents, talent => talent.Id == "radiance");
+        Assert.True(character.HasTalent("radiance"));
+        Assert.Contains(character.PossessedTalents, talent => talent.Id == "radiance");
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class CharacterTalentTests
 
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
 
-        Assert.True(character.HasEffectiveTalent("battle_focus"));
+        Assert.True(character.HasTalent("battle_focus"));
         Assert.Equal(17, character.GetStat(StatType.Fuyuan));
     }
 
@@ -137,8 +137,11 @@ public sealed class CharacterTalentTests
 
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
 
-        Assert.True(character.HasEffectiveTalent("qiankun_shift"));
-        Assert.True(character.HasEffectiveTalent("qiankun_shift_aoyi"));
+        Assert.True(character.HasTalent("qiankun_shift"));
+        Assert.True(character.HasTalent("qiankun_shift_aoyi"));
+        Assert.False(character.HasActiveTalent("qiankun_shift"));
+        Assert.True(character.HasActiveTalent("qiankun_shift_aoyi"));
+        Assert.Equal(["qiankun_shift_aoyi"], character.ActiveTalents.Select(static talent => talent.Id));
         Assert.Equal(10, character.GetStat(StatType.Fuyuan));
         Assert.Equal(14, character.GetStat(StatType.Dingli));
     }
@@ -186,8 +189,11 @@ public sealed class CharacterTalentTests
 
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
 
-        Assert.True(character.HasEffectiveTalent("qiankun_shift"));
-        Assert.True(character.HasEffectiveTalent("qiankun_shift_aoyi"));
+        Assert.True(character.HasTalent("qiankun_shift"));
+        Assert.True(character.HasTalent("qiankun_shift_aoyi"));
+        Assert.False(character.HasActiveTalent("qiankun_shift"));
+        Assert.True(character.HasActiveTalent("qiankun_shift_aoyi"));
+        Assert.Equal(["qiankun_shift_aoyi"], character.ActiveTalents.Select(static talent => talent.Id));
         Assert.Equal(10, character.GetStat(StatType.Fuyuan));
         Assert.Equal(14, character.GetStat(StatType.Dingli));
     }
@@ -226,8 +232,8 @@ public sealed class CharacterTalentTests
 
         character.RebuildSnapshot();
 
-        Assert.Empty(character.EffectiveTalents);
-        Assert.False(character.HasEffectiveTalent("battle_focus"));
+        Assert.Empty(character.PossessedTalents);
+        Assert.False(character.HasTalent("battle_focus"));
         Assert.Equal(10, character.GetStat(StatType.Fuyuan));
     }
 }

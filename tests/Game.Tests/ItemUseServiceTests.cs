@@ -396,7 +396,7 @@ public sealed class ItemUseServiceTests
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
-        Assert.True(hero.HasTalent(talent.Id));
+        Assert.True(hero.HasLearnedTalent(talent.Id));
         Assert.Equal(1, entry.Quantity);
     }
 
@@ -440,7 +440,7 @@ public sealed class ItemUseServiceTests
         Assert.Equal("武学常识不足，需要30", candidate.Reason);
         Assert.False(result.Success);
         Assert.Equal("武学常识不足，需要30", result.Message);
-        Assert.False(hero.HasTalent(expensiveTalent.Id));
+        Assert.False(hero.HasLearnedTalent(expensiveTalent.Id));
         Assert.Equal(1, entry.Quantity);
     }
 
@@ -578,13 +578,13 @@ public sealed class ItemUseServiceTests
         Assert.Equal(4, candidate.SkippedEffects.Count);
         Assert.False(unconfirmedResult.Success);
         Assert.Equal("该物品有部分效果无法生效，请确认后使用。", unconfirmedResult.Message);
-        Assert.False(hero.HasTalent(newTalent.Id));
+        Assert.False(hero.HasLearnedTalent(newTalent.Id));
         Assert.Equal(1, entry.Quantity);
 
         var confirmedResult = await session.ItemUseService.UseAsync(entry, hero.Id, true);
 
         Assert.True(confirmedResult.Success);
-        Assert.True(hero.HasTalent(newTalent.Id));
+        Assert.True(hero.HasLearnedTalent(newTalent.Id));
         Assert.Equal(10, hero.GetExternalSkillLevel(externalSkill.Id));
         Assert.Equal(10, hero.GetInternalSkillLevel(internalSkill.Id));
         Assert.Empty(state.Inventory.Entries);

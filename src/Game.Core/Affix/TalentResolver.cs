@@ -32,11 +32,11 @@ public static class TalentResolver
             candidateTalentsById[grantTalentAffix.Talent.Id] = grantTalentAffix.Talent;
         }
 
-        var orderedEffectiveTalents = candidateTalentsById.Values.ToList();
-        var effectiveTalents = orderedEffectiveTalents.ToHashSet();
+        var possessedTalents = candidateTalentsById.Values.ToList();
+        var activeTalents = new List<TalentDefinition>();
         var replacedTalentIds = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var talent in orderedEffectiveTalents)
+        foreach (var talent in possessedTalents)
         {
             foreach (var replacedTalentId in talent.ReplaceTalentIds)
             {
@@ -44,12 +44,14 @@ public static class TalentResolver
             }
         }
 
-        foreach (var talent in orderedEffectiveTalents)
+        foreach (var talent in possessedTalents)
         {
             if (replacedTalentIds.Contains(talent.Id))
             {
                 continue;
             }
+
+            activeTalents.Add(talent);
 
             foreach (var (talentAffix, index) in talent.Affixes.Select((affix, index) => (affix, index)))
             {
@@ -64,6 +66,7 @@ public static class TalentResolver
 
         return new ResolvedAffixSet(
             new ReadOnlyCollection<AffixDefinition>(resolvedAffixes),
-            new ReadOnlySet<TalentDefinition>(effectiveTalents));
+            new ReadOnlySet<TalentDefinition>(possessedTalents.ToHashSet()),
+            new ReadOnlySet<TalentDefinition>(activeTalents.ToHashSet()));
     }
 }

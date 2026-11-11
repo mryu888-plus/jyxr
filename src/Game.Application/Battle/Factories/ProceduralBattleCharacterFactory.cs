@@ -251,7 +251,7 @@ internal sealed class ProceduralBattleCharacterFactory
     private void TryAddRandomTalent(CharacterInstance character, IReadOnlyList<string> candidateIds)
     {
         var availableIds = candidateIds
-            .Where(candidateId => !character.HasTalent(candidateId))
+            .Where(candidateId => !character.HasLearnedTalent(candidateId))
             .Where(candidateId => IsTalentAllowedForGender(candidateId, character.Gender))
             .ToArray();
         if (availableIds.Length == 0)

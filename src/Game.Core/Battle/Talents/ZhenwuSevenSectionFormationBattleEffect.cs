@@ -92,5 +92,5 @@ internal static class ZhenwuFormationMembers
                 unit.Character.Definition.Id,
                 context.Unit.Character.Definition.Id,
                 StringComparison.Ordinal) &&
-            unit.Character.HasEffectiveTalent(formationTalentId));
+            unit.Character.HasTalent(formationTalentId));
 }

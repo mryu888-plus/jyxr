@@ -31,7 +31,7 @@ public static class AffixProjectionBuilder
             .ThenByDescending(static item => item.index)
             .Select(static item => item.affix.ModelId)
             .FirstOrDefault();
-        return new CharacterProjection(Build(entries), resolved.EffectiveTalents, selectedModel);
+        return new CharacterProjection(Build(entries), resolved.PossessedTalents, resolved.ActiveTalents, selectedModel);
     }
 
     public static AffixProjection Build(IEnumerable<ActiveAffixEntry> sourceEntries)

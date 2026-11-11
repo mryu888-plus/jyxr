@@ -28,7 +28,7 @@ public sealed class UniversalLearnRemoveCommandTests
         Assert.Equal(4, hero.GetExternalSkillLevel("external"));
         Assert.Equal(5, hero.GetInternalSkillLevel("internal"));
         Assert.Contains(hero.GetSpecialSkills(), skill => skill.Definition.Id == "special");
-        Assert.True(hero.HasTalent("talent"));
+        Assert.True(hero.HasLearnedTalent("talent"));
 
         foreach (var id in new[] { "external", "internal", "special", "talent" })
             await dispatcher.ExecuteCallAsync(parser.ParseCall($"remove('hero', '{id}')"));
@@ -36,7 +36,7 @@ public sealed class UniversalLearnRemoveCommandTests
         Assert.Null(hero.GetExternalSkillLevel("external"));
         Assert.Null(hero.GetInternalSkillLevel("internal"));
         Assert.DoesNotContain(hero.GetSpecialSkills(), skill => skill.Definition.Id == "special");
-        Assert.False(hero.HasTalent("talent"));
+        Assert.False(hero.HasLearnedTalent("talent"));
     }
 
     [Fact]
@@ -52,13 +52,13 @@ public sealed class UniversalLearnRemoveCommandTests
         await dispatcher.ExecuteCallAsync(parser.ParseCall("learn('hero', 'shared', 3)"));
 
         Assert.Equal(3, hero.GetExternalSkillLevel("shared"));
-        Assert.False(hero.HasTalent("shared"));
+        Assert.False(hero.HasLearnedTalent("shared"));
 
         session.CharacterService.LearnTalent(hero, "shared");
         await dispatcher.ExecuteCallAsync(parser.ParseCall("remove('hero', 'shared')"));
 
         Assert.Null(hero.GetExternalSkillLevel("shared"));
-        Assert.True(hero.HasTalent("shared"));
+        Assert.True(hero.HasLearnedTalent("shared"));
     }
 
     [Fact]

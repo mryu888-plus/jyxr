@@ -95,7 +95,7 @@ internal static class CoupleUnityBattleEffect
             unit.Team == context.Unit.Team &&
             unit.Id != context.Unit.Id &&
             unit.Character.Gender == partnerGender &&
-            unit.Character.HasEffectiveTalent(talentId));
+            unit.Character.HasTalent(talentId));
     }
 
     public static double RollFactor(

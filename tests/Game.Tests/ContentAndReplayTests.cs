@@ -693,7 +693,7 @@ public sealed class ContentLoadingTests
     }
 
     [Fact]
-    public void JsonLoader_LoadsBattleHookHpRatioEffectiveTalentAndSkillWeaponTypeConditions()
+    public void JsonLoader_LoadsBattleHookHpRatioHasTalentAndSkillWeaponTypeConditions()
     {
         const string json = """
             {
@@ -727,7 +727,7 @@ public sealed class ContentLoadingTests
                           "maxInclusive": 0.5
                         },
                         {
-                          "type": "context_unit_effective_talent",
+                          "type": "context_unit_has_talent",
                           "talentIds": [
                             "caotou"
                           ]
@@ -768,7 +768,7 @@ public sealed class ContentLoadingTests
             },
             condition =>
             {
-                var effectiveTalent = Assert.IsType<ContextUnitEffectiveTalentBattleHookConditionDefinition>(condition);
+                var effectiveTalent = Assert.IsType<ContextUnitHasTalentBattleHookConditionDefinition>(condition);
                 Assert.Equal(["caotou"], effectiveTalent.TalentIds);
             },
             condition =>

@@ -4576,7 +4576,7 @@ public sealed class BattleEngineTests
         };
         if (!string.IsNullOrWhiteSpace(requiredTalentId))
         {
-            conditions.Add(new ContextUnitEffectiveTalentBattleHookConditionDefinition([requiredTalentId]));
+            conditions.Add(new ContextUnitHasTalentBattleHookConditionDefinition([requiredTalentId]));
         }
 
         return new HookAffix
@@ -4609,7 +4609,7 @@ public sealed class BattleEngineTests
         };
         if (!string.IsNullOrWhiteSpace(requiredTalentId))
         {
-            conditions.Add(new ContextUnitEffectiveTalentBattleHookConditionDefinition([requiredTalentId]));
+            conditions.Add(new ContextUnitHasTalentBattleHookConditionDefinition([requiredTalentId]));
         }
 
         return new HookAffix

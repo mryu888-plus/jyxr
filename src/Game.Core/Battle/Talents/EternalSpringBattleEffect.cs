@@ -24,7 +24,7 @@ internal sealed class EternalSpringBattleEffectHandler
             return;
         }
 
-        var chance = context.Unit.Character.HasEffectiveTalent(parameters.EnhancedTalentId)
+        var chance = context.Unit.Character.HasTalent(parameters.EnhancedTalentId)
             ? parameters.EnhancedChance
             : parameters.Chance;
         if (!Probability.RollChance(context.Random, chance))

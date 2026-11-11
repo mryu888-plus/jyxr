@@ -23,7 +23,7 @@ internal sealed class FiveElementsFormationDamageShareHandler
         var participants = context.State.GetLivingUnits()
             .Where(unit => unit.Team == target.Team && unit.Id != target.Id)
             .Where(unit => unit.Position.ManhattanDistanceTo(target.Position) <= parameters.Radius)
-            .Where(unit => unit.Character.HasEffectiveTalent(parameters.TalentId))
+            .Where(unit => unit.Character.HasTalent(parameters.TalentId))
             .Where(_ => Probability.RollChance(context.Random, parameters.Chance))
             .ToList();
         if (participants.Count == 0) return;

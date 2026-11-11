@@ -77,7 +77,7 @@ public sealed class LegendSkillResolver
                 owner.GetSpecialSkills().Any(skill =>
                     string.Equals(skill.Id, specialSkill.TargetId, StringComparison.Ordinal)),
             RequiredTalentLegendConditionDefinition talent =>
-                owner.HasEffectiveTalent(talent.TargetId),
+                owner.HasTalent(talent.TargetId),
             _ => throw new NotSupportedException($"Unsupported legend skill condition '{condition.GetType().Name}'.")
         };
 }

@@ -26,7 +26,11 @@ public sealed class CharacterInstance
     public BattleAiType AiType { get; private set; } = BattleAiType.Basic;
 
     public CharacterProjection Projection { get; private set; } = CharacterProjection.Empty;
-    public IReadOnlySet<TalentDefinition> EffectiveTalents => Projection.EffectiveTalents;
+    /// <summary>已学习或经词条授予的全部天赋（含被替换的），见 <see cref="CharacterProjection.PossessedTalents"/>。</summary>
+    public IReadOnlySet<TalentDefinition> PossessedTalents => Projection.PossessedTalents;
+
+    /// <summary>实际贡献效果的天赋，见 <see cref="CharacterProjection.ActiveTalents"/>。</summary>
+    public IReadOnlySet<TalentDefinition> ActiveTalents => Projection.ActiveTalents;
     public IReadOnlySet<TraitId> Traits => Projection.Affixes.Traits;
     public string? ResolvedModelId => Projection.ResolvedModelId;
 
@@ -322,16 +326,22 @@ public sealed class CharacterInstance
                 skill.GetFormSkills()))
             .ToList();
 
-    public bool HasTalent(string talentId) =>
+    /// <summary>是否亲自学会了该天赋（不含装备、武学等词条授予的天赋）。</summary>
+    public bool HasLearnedTalent(string talentId) =>
         UnlockedTalents.Any(talent => string.Equals(talent.Id, talentId, StringComparison.Ordinal));
 
-    public bool HasEffectiveTalent(string talentId) =>
-        EffectiveTalents.Any(talent => string.Equals(talent.Id, talentId, StringComparison.Ordinal));
+    /// <summary>是否拥有该天赋（学会或被授予即可，不论是否被其它天赋替换）。</summary>
+    public bool HasTalent(string talentId) =>
+        PossessedTalents.Any(talent => string.Equals(talent.Id, talentId, StringComparison.Ordinal));
+
+    /// <summary>该天赋是否实际生效（拥有且未被替换）。</summary>
+    public bool HasActiveTalent(string talentId) =>
+        ActiveTalents.Any(talent => string.Equals(talent.Id, talentId, StringComparison.Ordinal));
 
     public bool LearnTalent(TalentDefinition talent)
     {
         ArgumentNullException.ThrowIfNull(talent);
-        if (HasTalent(talent.Id))
+        if (HasLearnedTalent(talent.Id))
         {
             return false;
         }

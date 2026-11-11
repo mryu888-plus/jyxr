@@ -101,19 +101,26 @@ public sealed class CharacterProjection
     public static CharacterProjection Empty { get; } = new(
         AffixProjection.Empty,
         new HashSet<TalentDefinition>(),
+        new HashSet<TalentDefinition>(),
         null);
 
     public CharacterProjection(
         AffixProjection affixes,
-        IReadOnlySet<TalentDefinition> effectiveTalents,
+        IReadOnlySet<TalentDefinition> possessedTalents,
+        IReadOnlySet<TalentDefinition> activeTalents,
         string? resolvedModelId)
     {
         Affixes = affixes;
-        EffectiveTalents = effectiveTalents;
+        PossessedTalents = possessedTalents;
+        ActiveTalents = activeTalents;
         ResolvedModelId = resolvedModelId;
     }
 
     public AffixProjection Affixes { get; }
-    public IReadOnlySet<TalentDefinition> EffectiveTalents { get; }
+    /// <summary>已学习或经词条授予的全部天赋，被替换的天赋仍在其中；用于天赋存在性判断。</summary>
+    public IReadOnlySet<TalentDefinition> PossessedTalents { get; }
+
+    /// <summary>未被替换、实际贡献词条效果的天赋。</summary>
+    public IReadOnlySet<TalentDefinition> ActiveTalents { get; }
     public string? ResolvedModelId { get; }
 }

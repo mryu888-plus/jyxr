@@ -38,8 +38,8 @@ internal sealed class CarefulDefenseBattleEffectHandler
             return;
         }
 
-        var hasCareful = context.Unit.Character.HasEffectiveTalent(parameters.CarefulTalentId);
-        var hasSmart = context.Unit.Character.HasEffectiveTalent(parameters.SmartTalentId);
+        var hasCareful = context.Unit.Character.HasTalent(parameters.CarefulTalentId);
+        var hasSmart = context.Unit.Character.HasTalent(parameters.SmartTalentId);
 
         if (parameters.Mode == "careful")
         {
