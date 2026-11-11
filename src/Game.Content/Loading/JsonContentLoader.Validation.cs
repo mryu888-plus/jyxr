@@ -504,7 +504,7 @@ public sealed partial class JsonContentLoader
         {
             var defaultImpact = SkillHelper.GetImpactType(skill.Type);
             var skillTargetings = new[] { skill.Targeting }
-                .Concat(skill.RawLevelOverrides.Select(static level => level.Targeting).OfType<SkillTargetingDefinition>())
+                .Concat(skill.LevelOverrideEntries.Select(static level => level.Targeting).OfType<SkillTargetingDefinition>())
                 .ToList();
             foreach (var targeting in skillTargetings)
             {

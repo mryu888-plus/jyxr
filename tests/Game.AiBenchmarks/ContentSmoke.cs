@@ -46,11 +46,12 @@ internal static class ContentSmoke
                     .DistinctBy(static entry => entry.Id)
                     .ToList(),
                 [],
-                Enumerable.Range(0, 3).Select(_ => talentIds[random.Next(talentIds.Count)]).Distinct().ToList(),
+                Enumerable.Range(0, 3).Select(_ => talentIds[random.Next(talentIds.Count)]).Distinct()
+                    .Select(static id => new ContentReference<TalentDefinition>(id)).ToList(),
                 [],
                 Level: 20,
-                SpecialSkillIds: specialSkillIds);
-            definition.Resolve(repository);
+                SpecialSkillReferences: specialSkillIds.Select(static id => new ContentReference<SpecialSkillDefinition>(id)).ToList());
+            ContentReferenceGraph.Resolve(definition, repository);
             var character = CharacterMapper.CreateInitial(definition.Id, definition, equipment);
             GridPosition position;
             do

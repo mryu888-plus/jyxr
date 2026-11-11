@@ -250,7 +250,7 @@ public sealed class BattleAiSkillPreviewTests
             Speech: null,
             Buffs: [],
             Effects: effects);
-        skill.Resolve(TestContentFactory.CreateRepository(specialSkills: [skill], buffs: [Poison, Stun, AttackUp]));
+        ContentReferenceGraph.Resolve(skill, TestContentFactory.CreateRepository(specialSkills: [skill], buffs: [Poison, Stun, AttackUp]));
         return skill;
     }
 

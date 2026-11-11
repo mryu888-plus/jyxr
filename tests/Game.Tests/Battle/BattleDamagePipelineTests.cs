@@ -419,10 +419,17 @@ public sealed class BattleDamagePipelineTests
     private static TalentDefinition Talent(string json)
     {
         var talent = JsonSerializer.Deserialize<TalentDefinition>(json, GameJson.Default)!;
-        var repository = TestContentFactory.CreateRepository(talents: [talent]);
+        // 自定义效果参数里引用的天赋（如 careful/family/guaranteed）必须在仓库中存在，这里补占位定义。
+        var referencedTalentIds = System.Text.RegularExpressions.Regex
+            .Matches(json, @"""[A-Za-z]+TalentId""\s*:\s*""([^""]+)""")
+            .Select(static match => match.Groups[1].Value)
+            .Where(id => id != talent.Id)
+            .Distinct()
+            .Select(static id => new TalentDefinition { Id = id, Name = id });
+        var repository = TestContentFactory.CreateRepository(talents: [talent, .. referencedTalentIds]);
         foreach (var affix in talent.Affixes)
         {
-            affix.Resolve(repository);
+            ContentReferenceGraph.Resolve(affix, repository);
         }
 
         return talent;
@@ -440,7 +447,7 @@ public sealed class BattleDamagePipelineTests
             SkillCostDefinition.None,
             new SkillTargetingDefinition(CastSize: 1, ImpactType: SkillImpactType.Single, ImpactSize: 0),
             string.Empty, string.Empty, Speech: null, Buffs: [], Effects: [effect]);
-        effect.Resolve(TestContentFactory.CreateRepository(specialSkills: [skill]));
+        ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository(specialSkills: [skill]));
         return skill;
     }
 
