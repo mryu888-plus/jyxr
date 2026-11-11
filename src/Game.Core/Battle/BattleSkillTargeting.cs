@@ -13,7 +13,7 @@ public static class BattleSkillTargeting
         ArgumentNullException.ThrowIfNull(skill);
 
         var castSize = source.GetSkillTargetingValue(
-            skill.SourceSkillId,
+            skill,
             SkillTargetingField.CastSize,
             skill.CastSize);
         return ApplyBlindPenalty(source, castSize);
@@ -25,7 +25,7 @@ public static class BattleSkillTargeting
         ArgumentNullException.ThrowIfNull(skill);
 
         var impactSize = source.GetSkillTargetingValue(
-            skill.SourceSkillId,
+            skill,
             SkillTargetingField.ImpactSize,
             skill.ImpactSize);
         return ApplyBlindPenalty(source, impactSize);
@@ -44,12 +44,18 @@ public static class BattleSkillTargeting
 
         return state.Units
             .Where(targetUnit => targetUnit.IsAlive && impactedPositions.Contains(targetUnit.Position))
-            .Where(targetUnit =>
-                !string.Equals(targetUnit.Id, source.Id, StringComparison.Ordinal) ||
-                skill.CanImpactSelf)
-            .Where(targetUnit => ShouldIncludeTarget(state, source, targetUnit, skill))
+            .Where(targetUnit => IsCaster(source, targetUnit)
+                ? skill.CanImpactSelf
+                : ShouldIncludeTarget(state, source, targetUnit, skill))
             .ToList();
     }
+
+    /// <summary>
+    /// CanImpactSelf 表达“施法者本人一定承受这个技能”（legacy HitSelf）：施法者在覆盖范围内时直接成为目标，
+    /// 不再经过阵营、难度和 AvoidFriendlyFire 的友伤过滤；其它友军仍按友伤规则判定。
+    /// </summary>
+    private static bool IsCaster(BattleUnit source, BattleUnit target) =>
+        string.Equals(target.Id, source.Id, StringComparison.Ordinal);
 
     private static bool ShouldIncludeTarget(
         BattleState state,

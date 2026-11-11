@@ -31,6 +31,7 @@ public sealed class SpecialSkillInstance(
     public override double Affinity => 0;
     public override int CurrentCooldown { get; set; }
     public override SkillKind SkillKind => SkillKind.Special;
+    public override SkillSourceKind SourceKind => SkillSourceKind.Special;
     public override WeaponType WeaponType => WeaponType.Unknown;
     public override double Power => 0;
     public override int MpCost => Definition.Cost.Mp ?? 0;

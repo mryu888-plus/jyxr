@@ -104,6 +104,8 @@ legacy 把攀云乘龙、无形剑气的追加伤害加在精打细算/精明封
 - MISS
 - 命中成立但禁止后续附加效果
 
+结算分两阶段：先解析最终命中状态（只执行 `cancel_hit` / `set_hit_success`），再提交与最终结果一致的钩子副作用，规则见 [战斗运行时架构](battle-runtime-architecture.md#结算规则要点)。
+
 当前适合挂载的 effect 原语：
 
 - `cancel_hit`

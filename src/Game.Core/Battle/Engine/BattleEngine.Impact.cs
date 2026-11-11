@@ -19,6 +19,12 @@ public sealed partial class BattleEngine
         int impactSize)
     {
         var size = Math.Max(0, impactSize);
+        if (source == target && SkillTargetingDefaults.IsDirectional(impactType))
+        {
+            // 方向型覆盖不能对自身格施法（见 SkillTargetingDefaults.IsDirectional），没有方向就没有覆盖格。
+            return new HashSet<GridPosition>();
+        }
+
         return impactType switch
         {
             SkillImpactType.Single => new HashSet<GridPosition> { target },
@@ -88,11 +94,6 @@ public sealed partial class BattleEngine
 
     private static IEnumerable<GridPosition> ResolveCleavePositions(GridPosition source, GridPosition target)
     {
-        if (source == target)
-        {
-            target = new GridPosition(source.X + 1, source.Y);
-        }
-
         yield return target;
         var (dx, dy) = ResolvePrimaryDirection(source, target);
         if (dx != 0)
@@ -110,6 +111,11 @@ public sealed partial class BattleEngine
     {
         var dx = target.X - source.X;
         var dy = target.Y - source.Y;
+        if (dx == 0 && dy == 0)
+        {
+            throw new InvalidOperationException("Directional skill coverage requires a target cell different from the caster.");
+        }
+
         if (Math.Abs(dx) >= Math.Abs(dy))
         {
             return (dx < 0 ? -1 : 1, 0);

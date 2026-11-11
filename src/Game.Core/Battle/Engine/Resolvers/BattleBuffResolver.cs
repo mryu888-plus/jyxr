@@ -23,6 +23,8 @@ internal sealed class BattleBuffResolver(
         int duration,
         HookTiming? timing = null)
     {
+        // 施加顺序与 legacy AttackLogic 一致：圣战免疫 → 抗性判定 → BeforeBuffApplied 增强 → 与现有同 ID 状态比较。
+        // 圣战与普通抗性成功都静默跳过：不产生事实、不飘字，也不触发 BeforeBuffApplied 天赋。
         if (definition.IsDebuff && target.HasBuff(BattleContentIds.HolyWar))
         {
             return false;
@@ -30,7 +32,6 @@ internal sealed class BattleBuffResolver(
 
         if (definition.IsDebuff && RollDebuffResistance(target))
         {
-            state.AddMessage(new BattleFact(BattleFactKind.BuffResisted, target.Id, timing, detail: definition.Id));
             return false;
         }
 
@@ -121,8 +122,6 @@ internal sealed class BattleBuffResolver(
         }
 
         buff.Reduce(levelReduction, durationReduction);
-        target.InvalidateLocalBattleProjection();
-        target.ClampResourcesToLimits();
         state.AddMessage(new BattleFact(
             BattleFactKind.BuffReduced,
             target.Id,

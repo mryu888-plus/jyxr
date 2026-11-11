@@ -73,25 +73,70 @@ public sealed record BuffLevelStatModifierAffix(
     double AddPerLevel = 0d,
     double MulPerLevel = 0d) : AffixDefinition;
 
+/// <summary>
+/// 技能范围修改。<see cref="Selector"/> 为空表示作用于全部技能；同一单位的多个范围修改按内容原始顺序依次应用。
+/// </summary>
 public sealed record SkillTargetingModifierAffix(
-    string? SourceSkillId,
+    SkillSelectorDefinition? Selector,
     SkillTargetingField Field,
     ModifierValue Value) : AffixDefinition
 {
-    public override void Resolve(IContentRepository contentRepository)
+    public bool Matches(SkillInstance skill) => Selector is null || Selector.Matches(skill);
+
+    public override void Resolve(IContentRepository contentRepository) =>
+        Selector?.Resolve(contentRepository);
+}
+
+/// <summary>
+/// 技能选择器：各条件之间为“且”，同一条件内为“或”；未声明的条件不限制。
+/// sourceSkillIds 按技能来源 ID 匹配（招式、奥义匹配其父技能）。
+/// </summary>
+public sealed record SkillSelectorDefinition(
+    IReadOnlyList<string>? SourceSkillIds = null,
+    IReadOnlyList<WeaponType>? WeaponTypes = null,
+    IReadOnlyList<SkillKind>? SkillKinds = null,
+    IReadOnlyList<SkillSourceKind>? SourceKinds = null)
+{
+    public bool Matches(SkillInstance skill)
     {
-        if (SourceSkillId is null)
+        ArgumentNullException.ThrowIfNull(skill);
+        return (SourceSkillIds is null || SourceSkillIds.Contains(skill.SourceSkillId, StringComparer.Ordinal)) &&
+               (WeaponTypes is null || WeaponTypes.Contains(skill.WeaponType)) &&
+               (SkillKinds is null || SkillKinds.Contains(skill.SkillKind)) &&
+               (SourceKinds is null || SourceKinds.Contains(skill.SourceKind));
+    }
+
+    public void Resolve(IContentRepository contentRepository)
+    {
+        foreach (var (name, count) in new[]
+                 {
+                     ("sourceSkillIds", SourceSkillIds?.Count),
+                     ("weaponTypes", WeaponTypes?.Count),
+                     ("skillKinds", SkillKinds?.Count),
+                     ("sourceKinds", SourceKinds?.Count),
+                 })
         {
-            return;
+            if (count == 0)
+            {
+                throw new InvalidOperationException($"Skill selector field '{name}' must not be empty when declared.");
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(SourceSkillId) ||
-            (!contentRepository.TryGetExternalSkill(SourceSkillId, out _) &&
-            !contentRepository.TryGetInternalSkill(SourceSkillId, out _) &&
-            !contentRepository.TryGetSpecialSkill(SourceSkillId, out _)))
+        if (SourceSkillIds is null && WeaponTypes is null && SkillKinds is null && SourceKinds is null)
         {
-            throw new InvalidOperationException(
-                $"Skill targeting modifier references missing source skill '{SourceSkillId}'.");
+            throw new InvalidOperationException("Skill selector must declare at least one condition; omit the selector to match every skill.");
+        }
+
+        foreach (var sourceSkillId in SourceSkillIds ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(sourceSkillId) ||
+                (!contentRepository.TryGetExternalSkill(sourceSkillId, out _) &&
+                 !contentRepository.TryGetInternalSkill(sourceSkillId, out _) &&
+                 !contentRepository.TryGetSpecialSkill(sourceSkillId, out _)))
+            {
+                throw new InvalidOperationException(
+                    $"Skill selector references missing source skill '{sourceSkillId}'.");
+            }
         }
     }
 }

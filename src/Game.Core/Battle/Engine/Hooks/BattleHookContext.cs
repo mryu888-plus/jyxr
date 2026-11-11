@@ -160,6 +160,14 @@ public sealed class BattleHookContext :
 
     public BattleHitState HitState { get; internal set; } = BattleHitState.Hit;
 
+    /// <summary>
+    /// 命中结算第一阶段：钩子只落地改变命中状态的效果（cancel_hit / set_hit_success），
+    /// 其余效果、飘字与台词登记为待提交结果，等最终命中状态确定后再按一致性提交。
+    /// </summary>
+    internal bool DeferHitOutcomes { get; set; }
+
+    internal List<PendingHitOutcome> PendingHitOutcomes { get; } = [];
+
     public bool SuppressHitEffects { get; internal set; }
 
     public bool Cancel { get; internal set; }

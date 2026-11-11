@@ -46,6 +46,7 @@ public sealed class LegendSkillInstance(
     public override bool IsActive => Parent.IsActive;
     public override int CurrentCooldown { get; set; }
     public override SkillKind SkillKind => SkillKind.Legend;
+    public override SkillSourceKind SourceKind => Parent.SourceKind;
     public override WeaponType WeaponType => Parent.WeaponType;
 
 }

@@ -40,6 +40,17 @@ public sealed class BattleBuffInstance
 
     public bool IsExpired => RemainingTurns <= 0;
 
+    /// <summary>挂在单位身上后由单位订阅：等级或剩余回合变化时通知单位刷新 active buff 快照与投影。</summary>
+    private Action? _changed;
+
+    internal void AttachTo(Action changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+        _changed = changed;
+    }
+
+    internal void Detach() => _changed = null;
+
     public void Strengthen(int levelDelta, int turnDelta)
     {
         if (levelDelta < 0)
@@ -54,6 +65,7 @@ public sealed class BattleBuffInstance
 
         Level = checked(Level + levelDelta);
         RemainingTurns = checked(RemainingTurns + turnDelta);
+        _changed?.Invoke();
     }
 
     internal void Reduce(int levelReduction, int turnReduction)
@@ -63,6 +75,7 @@ public sealed class BattleBuffInstance
 
         Level = Math.Max(0, Level - levelReduction);
         RemainingTurns = Math.Max(0, RemainingTurns - turnReduction);
+        _changed?.Invoke();
     }
 
     internal bool AdvanceTimeline()
@@ -77,5 +90,9 @@ public sealed class BattleBuffInstance
         return true;
     }
 
-    internal void ConsumeRound() => RemainingTurns--;
+    internal void ConsumeRound()
+    {
+        RemainingTurns--;
+        _changed?.Invoke();
+    }
 }

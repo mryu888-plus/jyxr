@@ -102,7 +102,7 @@ public sealed partial class BattleEngine
             detail: resolvedSkill.Id,
             skillCast: skillCastInfo);
         AddMessage(state, battleEvent);
-        _skillExecutor.Execute(
+        var execution = _skillExecutor.Execute(
             state,
             unit,
             targets,
@@ -117,7 +117,7 @@ public sealed partial class BattleEngine
         EndActionCore(state, unit, committedMainAction: true);
         return BattleCommandResult<BattleActionResult>.Succeeded(
             new BattleActionResult(
-                targets.Select(static targetUnit => targetUnit.Id).ToList(),
+                execution.AffectedUnits.Select(static targetUnit => targetUnit.Id).ToList(),
                 impactedPositions.OrderBy(static position => position.Y).ThenBy(static position => position.X).ToList(),
                 skillCastInfo),
             command.Messages);

@@ -65,7 +65,6 @@ public enum SkillTargetingField
     ImpactSize
 }
 
-public readonly record struct SkillTargetingModifierKey(string? SourceSkillId, SkillTargetingField Field);
 
 public enum BattleRecoveryKind
 {

@@ -27,6 +27,7 @@ public sealed class ExternalSkillInstance(
     public override string Audio => Definition.Audio;
     public override int CurrentCooldown { get; set; }
     public override SkillKind SkillKind => SkillKind.External;
+    public override SkillSourceKind SourceKind => SkillSourceKind.External;
     public override WeaponType WeaponType => Definition.Type;
     public override double Power
     {

@@ -101,6 +101,12 @@ public sealed partial class BattleEngine
             suppressHitEffects = true;
         }
 
+        // 两阶段命中结算：
+        // 1) 解析：目标侧闪避/反制 → 来源侧破闪避 → 来源侧失手 → 命中率补判，只落地改变命中状态的效果；
+        // 2) 提交：最终命中状态确定后，再提交与最终结果一致的钩子副作用（反制 Debuff、台词、飘字、冷却重置等），
+        //    避免“最终命中但目标闪避反制已生效”。
+        var resolutionContexts = new List<BattleHookContext>();
+
         void Configure(BattleHookContext context)
         {
             context.Source = source;
@@ -108,12 +114,14 @@ public sealed partial class BattleEngine
             context.Skill = skill;
             context.HitState = hitState;
             context.SuppressHitEffects = suppressHitEffects;
+            context.DeferHitOutcomes = true;
         }
 
         void Apply(BattleHookContext context)
         {
             hitState = context.HitState;
             suppressHitEffects = context.SuppressHitEffects;
+            resolutionContexts.Add(context);
         }
 
         Apply(TriggerHooks(state, HookTiming.BeforeHitResolved, target, Configure));
@@ -141,6 +149,17 @@ public sealed partial class BattleEngine
         {
             hitState = BattleHitState.Hit;
             suppressHitEffects = false;
+        }
+
+        foreach (var context in resolutionContexts)
+        {
+            context.DeferHitOutcomes = false;
+            context.HitState = hitState;
+            context.SuppressHitEffects = suppressHitEffects;
+            foreach (var outcome in context.PendingHitOutcomes)
+            {
+                _hookExecutor.CommitHitOutcome(context, outcome);
+            }
         }
 
         return new BattleSkillHitCheck(hitState == BattleHitState.Miss, suppressHitEffects);
@@ -326,10 +345,6 @@ public sealed partial class BattleEngine
 
             ApplyPeriodicBuffEffect(state, unit, buff);
             buff.ConsumeRound();
-            if (buff.IsExpired)
-            {
-                unit.InvalidateLocalBattleProjection();
-            }
             TriggerHooks(state, HookTiming.AfterBuffRound, unit, context =>
             {
                 context.Source = state.TryGetUnit(buff.SourceUnitId) ?? unit;
@@ -427,16 +442,14 @@ public sealed partial class BattleEngine
         BattleResourceResolver.AddRage(state, unit, 1, detailSource: buff.Definition.Id);
     }
 
-    internal void TryGainRageFromAttack(
-        BattleState state,
-        BattleUnit unit,
-        IReadOnlyList<BattleUnit> targets)
+    /// <summary>主动攻击回怒：整次施放只判定一次，以本次施放实际作用到的单位为准（含效果选择器派生的目标）。</summary>
+    internal void TryGainRageFromAttack(BattleState state, BattleSkillExecution execution)
     {
-        if (!targets.Any(target => state.AreEnemies(unit, target)))
+        if (!execution.Source.IsAlive || !execution.AffectedEnemy(state))
         {
             return;
         }
 
-        BattleRageGainResolver.TryGain(state, unit, _random, timing: null, detailSource: "attack");
+        BattleRageGainResolver.TryGain(state, execution.Source, _random, timing: null, detailSource: "attack");
     }
 }

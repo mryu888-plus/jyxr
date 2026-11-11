@@ -41,7 +41,7 @@ public static class AffixProjectionBuilder
         var stat = new Dictionary<StatType, ModifierBucket>();
         var skill = new Dictionary<string, ModifierBucket>();
         var weapon = new Dictionary<WeaponType, ModifierBucket>();
-        var targeting = new Dictionary<SkillTargetingModifierKey, ModifierBucket>();
+        var targeting = new List<SkillTargetingModifierAffix>();
         var legend = new Dictionary<string, ModifierBucket>();
         var traits = entries.Where(static entry => entry.Definition is TraitAffix)
             .Select(static entry => ((TraitAffix)entry.Definition).TraitId)
@@ -66,7 +66,7 @@ public static class AffixProjectionBuilder
                 case WeaponBonusModifierAffix value: Apply(weapon, value.WeaponType, value.Value); break;
                 case LegendSkillChanceModifierAffix value: Apply(legend, value.SkillId, value.Value); break;
                 case SkillTargetingModifierAffix value:
-                    Apply(targeting, new SkillTargetingModifierKey(value.SourceSkillId, value.Field), value.Value);
+                    targeting.Add(value);
                     break;
                 case HookAffix hook:
                     if (!hooks.TryGetValue(hook.Timing, out var list)) hooks[hook.Timing] = list = [];
@@ -83,7 +83,7 @@ public static class AffixProjectionBuilder
             new ReadOnlyDictionary<StatType, ModifierBucket>(stat),
             new ReadOnlyDictionary<string, ModifierBucket>(skill),
             new ReadOnlyDictionary<WeaponType, ModifierBucket>(weapon),
-            new ReadOnlyDictionary<SkillTargetingModifierKey, ModifierBucket>(targeting),
+            new ReadOnlyCollection<SkillTargetingModifierAffix>(targeting),
             new ReadOnlyDictionary<string, ModifierBucket>(legend));
     }
 

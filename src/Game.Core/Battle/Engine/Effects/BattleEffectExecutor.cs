@@ -24,6 +24,7 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
                 source,
                 primaryTargets,
                 custom.Target);
+            state.ActiveSkillExecution?.RecordAffected(targets);
             custom.ExecuteAbility(new BattleAbilityEffectContext(
                 engine,
                 state,
@@ -49,6 +50,11 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
         var targets = effect is ITargetedBattleEffectDefinition targeted
             ? BattleUnitSelectorResolver.Resolve(state, contextUnit, source, primaryTargets, targeted.Target)
             : [];
+        if (hookContext is null)
+        {
+            // 技能定义效果（非钩子）作用到的单位计入本次施放。
+            state.ActiveSkillExecution?.RecordAffected(targets);
+        }
 
         switch (effect)
         {
@@ -70,7 +76,6 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
             case StrengthenContextBuffBattleHookEffectDefinition strengthen:
                 (RequireHook().Buff ?? throw new InvalidOperationException("Battle effect requires a context buff."))
                     .Strengthen(strengthen.LevelDelta, strengthen.TurnDelta);
-                RequireHook().Unit.InvalidateLocalBattleProjection();
                 break;
             case ApplyBuffBattleEffectDefinition applyBuff:
                 foreach (var target in targets)

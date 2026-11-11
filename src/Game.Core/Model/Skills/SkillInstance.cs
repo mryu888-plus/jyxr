@@ -3,6 +3,19 @@ using Game.Core.Model.Character;
 
 namespace Game.Core.Model.Skills;
 
+/// <summary>
+/// 技能来源类别，与 <see cref="SkillKind"/>（技能形态）正交：招式和奥义保留自身形态，来源继承父技能。
+/// </summary>
+public enum SkillSourceKind
+{
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("external")]
+    External,
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
+    Internal,
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("special")]
+    Special,
+}
+
 public enum SkillKind
 {
     External,
@@ -52,6 +65,7 @@ public abstract class SkillInstance(CharacterInstance owner)
     public virtual string CooldownKey => Id;
     public abstract int CurrentCooldown { get; set; }
     public abstract SkillKind SkillKind { get; }
+    public abstract SkillSourceKind SourceKind { get; }
     public abstract WeaponType WeaponType { get; }
     public abstract double Power { get; }
     public abstract int MpCost { get; }

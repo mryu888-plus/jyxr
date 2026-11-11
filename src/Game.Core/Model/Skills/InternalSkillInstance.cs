@@ -29,6 +29,7 @@ public sealed class InternalSkillInstance(
 
     public override int CurrentCooldown { get; set; }
     public override SkillKind SkillKind => SkillKind.Internal;
+    public override SkillSourceKind SourceKind => SkillSourceKind.Internal;
     public override WeaponType WeaponType => WeaponType.InternalSkill;
 
     public int Yin => Definition.Yin * Level / 10;

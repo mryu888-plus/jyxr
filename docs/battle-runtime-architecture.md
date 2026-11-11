@@ -27,6 +27,27 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
 
 `BattleUnit` 继续直接引用 `CharacterInstance`，战斗成长立即写入角色实例。
 
+### 结算规则要点
+
+- **技能施放上下文**：`BattleSkillExecutor` 每次施放创建 `BattleSkillExecution`（挂在 `BattleState.ActiveSkillExecution`），记录本次实际作用到的单位：技能伤害与技能附带状态的目标，以及技能定义效果经选择器（如 `all_enemies`）解析出的目标；钩子效果不计入。施放结果的 `AffectedUnitIds` 取自这里。
+- **主动攻击回怒**：整次施放只判定一次，条件是本次实际作用到了敌方单位（对自身施放、再由效果作用全体敌人的特殊技能也会回怒）。
+- **受击回怒**：沿用 legacy `AttackLogic` 的攻击级语义——同一次主动施放内，每个受击单位最多判定一次（按 `50% + 福缘 / 1000`）；追加攻击、多段伤害、直接伤害不再各自判定。没有施放上下文的伤害（Buff 周期伤害等）仍逐次判定，关闭承伤后响应的伤害不判定。
+- **两阶段命中结算**：`BeforeHitResolved` 依次执行目标侧闪避/反制、来源侧破闪避、来源侧失手，再按命中率补判；这一阶段只落地 `cancel_hit` / `set_hit_success`。最终命中状态确定后才提交已触发钩子的其余效果、飘字与台词，且只提交与最终结果一致的钩子：取消命中的钩子要求最终未命中，强制命中的钩子要求最终命中，声明了 `context_hit_state` 的钩子要求最终状态仍满足条件。条件里的概率只判定一次。
+- **Debuff 施加顺序**（与 legacy 一致）：圣战免疫 → 抗性判定 → `BeforeBuffApplied` 增强 → 与现有同 ID 状态比较。圣战与抗性成功都静默跳过，不产生事实、不飘字，也不触发 `BeforeBuffApplied`；进入增强阶段后即使最终比较未覆盖现有状态，增强钩子的台词与飘字仍会出现（legacy 同样如此）。
+- **active buff 快照**：`BattleUnit.ActiveBuffs` / `TryGetBuff` 读取按需构建的快照；buff 增删以及 buff 等级、剩余回合变化（`Strengthen`、`Reduce`、回合消耗）都会通知所属单位，统一刷新快照、局部投影并钳制资源。
+- **CanImpactSelf**：表示施法者本人一定承受该技能（legacy `HitSelf`）。施法者位于覆盖范围内时直接成为目标，不经过阵营、难度和 `AvoidFriendlyFire` 的友伤过滤；其它友军仍按友伤规则判定。
+- **方向型覆盖**：`line` / `fan` / `cleave` 按“施法者 → 目标格”的方向展开，禁止对自身格施法。内容装配拒绝为这些覆盖类型（含按武器默认得到的直线/劈砍，以及继承父技能覆盖类型的招式）显式开启 `canCastAtSelf`；对自身格查询覆盖范围得到空集。
+- **技能范围修改**：`skill_targeting_modifier` 用可选的 `selector` 选择技能（省略表示全部技能）：`sourceSkillIds`（按来源技能匹配，招式/奥义匹配父技能）、`weaponTypes`、`skillKinds`（技能形态 `External/Internal/Form/Special/Legend`）、`sourceKinds`（来源类别 `external/internal/special`，招式与奥义继承父技能）。同一条件内为“或”，不同条件为“且”；声明的条件不能为空列表。单位的全部范围修改按内容原始顺序（角色 → 战斗内 Buff → 场景效果）依次应用，多个 `override` 以最后一个为准。
+
+```json
+{
+  "type": "skill_targeting_modifier",
+  "selector": {"weaponTypes": ["jianfa"], "skillKinds": ["Form"]},
+  "field": "cast_size",
+  "value": {"op": "add", "delta": 1}
+}
+```
+
 ## 命令与消息
 
 所有改变状态的引擎命令返回 `BattleCommandResult<T>`：

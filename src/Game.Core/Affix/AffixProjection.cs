@@ -49,7 +49,7 @@ public sealed class AffixProjection
         new ReadOnlyDictionary<StatType, ModifierBucket>(new Dictionary<StatType, ModifierBucket>()),
         new ReadOnlyDictionary<string, ModifierBucket>(new Dictionary<string, ModifierBucket>()),
         new ReadOnlyDictionary<WeaponType, ModifierBucket>(new Dictionary<WeaponType, ModifierBucket>()),
-        new ReadOnlyDictionary<SkillTargetingModifierKey, ModifierBucket>(new Dictionary<SkillTargetingModifierKey, ModifierBucket>()),
+        Array.Empty<SkillTargetingModifierAffix>(),
         new ReadOnlyDictionary<string, ModifierBucket>(new Dictionary<string, ModifierBucket>()));
 
     public AffixProjection(
@@ -58,7 +58,7 @@ public sealed class AffixProjection
         IReadOnlyDictionary<StatType, ModifierBucket> statModifierBuckets,
         IReadOnlyDictionary<string, ModifierBucket> skillModifierBuckets,
         IReadOnlyDictionary<WeaponType, ModifierBucket> weaponModifierBuckets,
-        IReadOnlyDictionary<SkillTargetingModifierKey, ModifierBucket> targetingModifierBuckets,
+        IReadOnlyList<SkillTargetingModifierAffix> targetingModifiers,
         IReadOnlyDictionary<string, ModifierBucket> legendChanceModifierBuckets)
     {
         Traits = traits;
@@ -66,7 +66,7 @@ public sealed class AffixProjection
         StatModifierBuckets = statModifierBuckets;
         SkillModifierBuckets = skillModifierBuckets;
         WeaponModifierBuckets = weaponModifierBuckets;
-        TargetingModifierBuckets = targetingModifierBuckets;
+        TargetingModifiers = targetingModifiers;
         LegendChanceModifierBuckets = legendChanceModifierBuckets;
     }
 
@@ -75,7 +75,24 @@ public sealed class AffixProjection
     public IReadOnlyDictionary<StatType, ModifierBucket> StatModifierBuckets { get; }
     public IReadOnlyDictionary<string, ModifierBucket> SkillModifierBuckets { get; }
     public IReadOnlyDictionary<WeaponType, ModifierBucket> WeaponModifierBuckets { get; }
-    public IReadOnlyDictionary<SkillTargetingModifierKey, ModifierBucket> TargetingModifierBuckets { get; }
+    /// <summary>技能范围修改，保持内容原始顺序（角色 → 战斗内 buff → 场景效果）。</summary>
+    public IReadOnlyList<SkillTargetingModifierAffix> TargetingModifiers { get; }
+
+    /// <summary>按原始顺序依次应用匹配该技能的范围修改。</summary>
+    public int EvaluateSkillTargeting(Model.Skills.SkillInstance skill, SkillTargetingField field, int baseValue)
+    {
+        ArgumentNullException.ThrowIfNull(skill);
+        var bucket = ModifierBucket.Empty;
+        foreach (var modifier in TargetingModifiers)
+        {
+            if (modifier.Field == field && modifier.Matches(skill))
+            {
+                bucket = bucket.Apply(modifier.Value);
+            }
+        }
+
+        return checked((int)Math.Round(bucket.Evaluate(baseValue)));
+    }
     public IReadOnlyDictionary<string, ModifierBucket> LegendChanceModifierBuckets { get; }
 }
 

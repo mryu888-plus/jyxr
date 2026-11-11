@@ -16,13 +16,8 @@ public sealed class BattleEffectProjectionResolver(BattleState state)
     public double GetWeaponBonus(BattleUnit unit, WeaponType weaponType, double baseValue) =>
         GetBucket(GetEffectiveProjection(unit).WeaponModifierBuckets, weaponType).Evaluate(baseValue);
 
-    public int GetSkillTargeting(BattleUnit unit, string sourceSkillId, SkillTargetingField field, int baseValue)
-    {
-        var projection = GetEffectiveProjection(unit);
-        return (int)Math.Round(GetBucket(projection.TargetingModifierBuckets, new SkillTargetingModifierKey(null, field))
-            .Combine(GetBucket(projection.TargetingModifierBuckets, new SkillTargetingModifierKey(sourceSkillId, field)))
-            .Evaluate(baseValue));
-    }
+    public int GetSkillTargeting(BattleUnit unit, Model.Skills.SkillInstance skill, SkillTargetingField field, int baseValue) =>
+        GetEffectiveProjection(unit).EvaluateSkillTargeting(skill, field, baseValue);
 
     public bool HasTrait(BattleUnit unit, TraitId trait) => GetEffectiveProjection(unit).Traits.Contains(trait);
 
@@ -54,7 +49,7 @@ internal static class AffixProjectionCombiner
             CombineBuckets(projections.Select(static value => value.StatModifierBuckets)),
             CombineBuckets(projections.Select(static value => value.SkillModifierBuckets)),
             CombineBuckets(projections.Select(static value => value.WeaponModifierBuckets)),
-            CombineBuckets(projections.Select(static value => value.TargetingModifierBuckets)),
+            projections.SelectMany(static value => value.TargetingModifiers).ToList(),
             CombineBuckets(projections.Select(static value => value.LegendChanceModifierBuckets)));
     }
 

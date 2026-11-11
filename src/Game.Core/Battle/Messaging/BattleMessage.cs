@@ -97,7 +97,6 @@ public enum BattleFactKind
     Rested,
     ActionEnded,
     BuffApplied,
-    BuffResisted,
     BuffRemoved,
     BuffReduced,
     Healed,

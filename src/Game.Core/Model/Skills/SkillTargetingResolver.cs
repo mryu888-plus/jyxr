@@ -8,7 +8,7 @@ public static class SkillTargetingResolver
     {
         ArgumentNullException.ThrowIfNull(skill);
         return skill.Owner.GetSkillTargetingValue(
-            skill.SourceSkillId,
+            skill,
             SkillTargetingField.CastSize,
             skill.CastSize);
     }
@@ -17,7 +17,7 @@ public static class SkillTargetingResolver
     {
         ArgumentNullException.ThrowIfNull(skill);
         return skill.Owner.GetSkillTargetingValue(
-            skill.SourceSkillId,
+            skill,
             SkillTargetingField.ImpactSize,
             skill.ImpactSize);
     }

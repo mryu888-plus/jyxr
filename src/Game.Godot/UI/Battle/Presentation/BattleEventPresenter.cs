@@ -57,11 +57,6 @@ internal sealed class BattleEventPresenter(
                 board.PlayFloatText(fact.UnitId, applied, ResolveBuffStyle(fact.Detail));
                 AppendLog($"{unitName} 获得状态【{applied}】。");
                 break;
-            case BattleFactKind.BuffResisted:
-                var resisted = ResolveBuffName(fact.Detail);
-                board.PlayFloatText(fact.UnitId, "抵抗", BattleFloatTextStyle.Beneficial);
-                AppendLog($"{unitName} 抵抗了状态【{resisted}】。");
-                break;
             case BattleFactKind.BuffRemoved:
                 board.PlayFloatText(fact.UnitId, $"{ResolveBuffName(fact.Detail)}解除", BattleFloatTextStyle.Beneficial);
                 break;

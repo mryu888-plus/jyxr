@@ -284,8 +284,7 @@ public sealed class BattleRuleTests
             Name = "range_talent",
             Affixes =
             [
-                new SkillTargetingModifierAffix(
-                    modifiedSkillDefinition.Id,
+                new SkillTargetingModifierAffix(new SkillSelectorDefinition(SourceSkillIds: [modifiedSkillDefinition.Id]),
                     SkillTargetingField.CastSize,
                     ModifierValue.Add(3)),
             ],
@@ -328,8 +327,7 @@ public sealed class BattleRuleTests
             Name = "range_override_talent",
             Affixes =
             [
-                new SkillTargetingModifierAffix(
-                    skillDefinition.Id,
+                new SkillTargetingModifierAffix(new SkillSelectorDefinition(SourceSkillIds: [skillDefinition.Id]),
                     SkillTargetingField.CastSize,
                     ModifierValue.Override(10)),
             ],
@@ -403,7 +401,7 @@ public sealed class BattleRuleTests
             Id = "range_buff",
             Name = "range_buff",
             IsDebuff = false,
-            Affixes = [new SkillTargetingModifierAffix(skill.Id, SkillTargetingField.CastSize, ModifierValue.Add(3))],
+            Affixes = [new SkillTargetingModifierAffix(new SkillSelectorDefinition(SourceSkillIds: [skill.Id]), SkillTargetingField.CastSize, ModifierValue.Add(3))],
         };
 
         unit.TryApplyBuff(new BattleBuffInstance(buff, 1, 2, unit.Id, 0));

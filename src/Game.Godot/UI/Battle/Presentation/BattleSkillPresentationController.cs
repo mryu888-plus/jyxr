@@ -41,7 +41,7 @@ internal sealed class BattleSkillPresentationController(
                 presentation.EnqueueImpact(() => eventPresenter().PresentImmediate(cue));
                 return true;
             case BattleFact { Kind: BattleFactKind.Damaged or BattleFactKind.BuffApplied or
-                BattleFactKind.BuffResisted or BattleFactKind.BuffRemoved or BattleFactKind.BuffReduced or BattleFactKind.Healed or
+                BattleFactKind.BuffRemoved or BattleFactKind.BuffReduced or BattleFactKind.Healed or
                 BattleFactKind.Lifesteal or BattleFactKind.MpDamaged or BattleFactKind.MpRecovered or BattleFactKind.ActionGaugeChanged or
                 BattleFactKind.SkillCooldownsReset or
                 BattleFactKind.Rested or BattleFactKind.ItemUsed or

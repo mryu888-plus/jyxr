@@ -71,6 +71,33 @@ public sealed class BattleState
 
     public BattleExecutionScope? CurrentExecutionScope { get; private set; }
 
+    /// <summary>正在结算的主动技能施放；技能之外（周期伤害、物品等）为 null。</summary>
+    internal BattleSkillExecution? ActiveSkillExecution { get; private set; }
+
+    internal IDisposable EnterSkillExecution(BattleSkillExecution execution)
+    {
+        ArgumentNullException.ThrowIfNull(execution);
+        var previous = ActiveSkillExecution;
+        ActiveSkillExecution = execution;
+        return new SkillExecutionScope(this, previous);
+    }
+
+    private sealed class SkillExecutionScope(BattleState state, BattleSkillExecution? previous) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            state.ActiveSkillExecution = previous;
+            _disposed = true;
+        }
+    }
+
     public BattleUnit GetUnit(string unitId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);

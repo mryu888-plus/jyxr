@@ -222,6 +222,13 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
             return;
         }
 
+        // 攻击级语义（legacy AttackLogic）：一次主动技能施放内，每个受击单位最多判定一次受击回怒，
+        // 招式追加的多段伤害、直接伤害等不再各自判定；技能之外的伤害（无施放上下文）仍逐次判定。
+        if (state.ActiveSkillExecution is { } execution && !execution.TryClaimDamagedRageRoll(target))
+        {
+            return;
+        }
+
         BattleRageGainResolver.TryGain(
             state,
             target,

@@ -58,7 +58,7 @@ Effect handler 通过窄接口申请能力：
 - `BattleDamageResolver`：所有伤害的公共结算管线（伤害描述、承伤分量、承伤后响应、战败、来源侧响应），
   见 `battle-damage-timing-design.md`；
 - `BattleRecoveryResolver`：恢复量修正和实际恢复，返回请求量、修正量和实际量；
-- `BattleBuffResolver`：Buff 应用、抵抗、强化与移除；
+- `BattleBuffResolver`：Buff 应用（圣战免疫与抗性判定静默跳过）、强化与移除；
 - `BattleResourceResolver`：怒气、行动条等资源；
 - `BattleGrowthResolver`：技能、内功和角色经验及升级事实。
 

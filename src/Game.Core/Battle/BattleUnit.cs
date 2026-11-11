@@ -14,6 +14,8 @@ public sealed class BattleUnit
     private readonly Dictionary<string, int> _abilityUsageCounts = new(StringComparer.Ordinal);
     private BattleEffectProjectionResolver? _projectionResolver;
     private AffixProjection? _localProjection;
+    private IReadOnlyList<BattleBuffInstance>? _activeBuffs;
+    private Dictionary<string, BattleBuffInstance>? _activeBuffsById;
 
     public BattleUnit(
         string id,
@@ -79,7 +81,8 @@ public sealed class BattleUnit
 
     public IReadOnlyList<BattleBuffInstance> Buffs => _buffs;
 
-    public IEnumerable<BattleBuffInstance> ActiveBuffs => _buffs.Where(static buff => !buff.IsExpired);
+    /// <summary>未过期 buff 的快照；buff 增删或等级/回合变化时刷新，读取路径不再重复过滤分配。</summary>
+    public IReadOnlyList<BattleBuffInstance> ActiveBuffs => _activeBuffs ??= _buffs.Where(static buff => !buff.IsExpired).ToList();
 
     public IReadOnlySet<string> DisabledSkillIds => _disabledSkillIds;
 
@@ -238,11 +241,12 @@ public sealed class BattleUnit
         if (existing is not null)
         {
             _buffs.Remove(existing);
+            existing.Detach();
         }
 
         _buffs.Add(buff);
-        _localProjection = null;
-        ClampResourcesToLimits();
+        buff.AttachTo(OnBuffsChanged);
+        OnBuffsChanged();
         return true;
     }
 
@@ -254,11 +258,19 @@ public sealed class BattleUnit
             .Where(predicate)
             .ToList();
         _buffs.RemoveAll(buff => removed.Contains(buff));
+        foreach (var buff in removed)
+        {
+            buff.Detach();
+        }
+
         if (removed.Count > 0)
         {
-            _localProjection = null;
+            OnBuffsChanged();
         }
-        ClampResourcesToLimits();
+        else
+        {
+            ClampResourcesToLimits();
+        }
         return removed
             .Where(static buff => !buff.IsExpired)
             .ToList();
@@ -272,8 +284,8 @@ public sealed class BattleUnit
             return false;
         }
 
-        _localProjection = null;
-        ClampResourcesToLimits();
+        buff.Detach();
+        OnBuffsChanged();
         return true;
     }
 
@@ -287,13 +299,10 @@ public sealed class BattleUnit
             ? GetBucket(DetachedProjection.WeaponModifierBuckets, weaponType).Evaluate(baseValue)
             : Resolver.GetWeaponBonus(this, weaponType, baseValue);
 
-    public int GetSkillTargetingValue(string sourceSkillId, SkillTargetingField field, int baseValue) =>
+    public int GetSkillTargetingValue(Model.Skills.SkillInstance skill, SkillTargetingField field, int baseValue) =>
         _projectionResolver is null
-            ? (int)Math.Round(
-                GetBucket(DetachedProjection.TargetingModifierBuckets, new SkillTargetingModifierKey(null, field))
-                    .Combine(GetBucket(DetachedProjection.TargetingModifierBuckets, new SkillTargetingModifierKey(sourceSkillId, field)))
-                    .Evaluate(baseValue))
-            : Resolver.GetSkillTargeting(this, sourceSkillId, field, baseValue);
+            ? DetachedProjection.EvaluateSkillTargeting(skill, field, baseValue)
+            : Resolver.GetSkillTargeting(this, skill, field, baseValue);
 
     public double GetActionSpeed()
     {
@@ -359,25 +368,33 @@ public sealed class BattleUnit
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(buffId);
 
-        return _buffs.FirstOrDefault(buff =>
-            !buff.IsExpired &&
-            string.Equals(buff.Definition.Id, buffId, StringComparison.Ordinal));
+        _activeBuffsById ??= ActiveBuffs.ToDictionary(static buff => buff.Definition.Id, StringComparer.Ordinal);
+        return _activeBuffsById.GetValueOrDefault(buffId);
     }
 
     internal IReadOnlyList<BattleBuffInstance> RemoveExpiredBuffs()
     {
         var expired = _buffs.Where(static buff => buff.IsExpired).ToList();
         _buffs.RemoveAll(static buff => buff.IsExpired);
+        foreach (var buff in expired)
+        {
+            buff.Detach();
+        }
+
         if (expired.Count > 0)
         {
-            _localProjection = null;
+            OnBuffsChanged();
         }
-        ClampResourcesToLimits();
+        else
+        {
+            ClampResourcesToLimits();
+        }
+
         return expired;
     }
 
     internal AffixProjection GetLocalBattleProjection() => _localProjection ??= AffixProjectionBuilder.Build(
-        _buffs.Where(static buff => !buff.IsExpired).SelectMany(buff =>
+        ActiveBuffs.SelectMany(buff =>
             buff.Definition.Affixes.Select((affix, order) => new ActiveAffixEntry(
                 affix,
                 new BuffAffixOrigin(buff.Definition.Id, buff.AppliedAtActionSerial),
@@ -386,7 +403,14 @@ public sealed class BattleUnit
                 AffixOrder: order,
                 SourceSequence: buff.AppliedAtActionSerial))));
 
-    internal void InvalidateLocalBattleProjection() => _localProjection = null;
+    /// <summary>buff 集合或某个 buff 的等级/剩余回合变化后的唯一刷新入口。</summary>
+    private void OnBuffsChanged()
+    {
+        _activeBuffs = null;
+        _activeBuffsById = null;
+        _localProjection = null;
+        ClampResourcesToLimits();
+    }
 
     private BattleEffectProjectionResolver Resolver => _projectionResolver ??
         throw new InvalidOperationException($"Battle unit '{Id}' is not attached to a battle state.");

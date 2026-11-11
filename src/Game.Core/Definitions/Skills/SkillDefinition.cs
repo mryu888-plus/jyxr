@@ -50,6 +50,13 @@ public static class SkillTargetingDefaults
 {
     public const bool CanImpactSelf = false;
 
+    /// <summary>
+    /// 方向型覆盖（直线、扇形、劈砍）以“施法者 → 目标格”的方向展开，对自身格施法没有方向，因此一律禁止。
+    /// 内容装配阶段会拒绝为这些覆盖类型显式开启 canCastAtSelf。
+    /// </summary>
+    public static bool IsDirectional(SkillImpactType impactType) =>
+        impactType is SkillImpactType.Line or SkillImpactType.Fan or SkillImpactType.Cleave;
+
     public static bool CanCastAtSelf(SkillImpactType impactType) => impactType switch
     {
         SkillImpactType.Plus or

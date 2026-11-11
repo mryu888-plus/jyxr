@@ -45,6 +45,7 @@ public sealed class FormSkillInstance(
 
 	public override int CurrentCooldown { get; set; }
 	public override SkillKind SkillKind => SkillKind.Form;
+	public override SkillSourceKind SourceKind => Parent.SourceKind;
 	public override WeaponType WeaponType => Parent.WeaponType;
 
 	public override int Cooldown => Definition.Cooldown;

@@ -42,6 +42,7 @@ public sealed partial class JsonContentLoader
         ValidateSkillBuffs(repository);
         ValidateSkillAffixes(repository);
         ValidateSpecialSkills(repository);
+        ValidateSkillTargeting(repository);
         ValidateItemReferences(repository);
         ValidateEquipmentRandomAffixTables(repository);
         ValidateShops(repository);
@@ -501,6 +502,66 @@ public sealed partial class JsonContentLoader
             .ToArray();
         Ensure(errors.Length == 0, $"{context} is invalid: {string.Join("; ", errors)}");
     }
+
+    private static void ValidateSkillTargeting(InMemoryContentRepository repository)
+    {
+        foreach (var skill in repository.ExternalSkills.Values)
+        {
+            var defaultImpact = SkillHelper.GetImpactType(skill.Type);
+            var skillTargetings = new[] { skill.Targeting }
+                .Concat(skill.RawLevelOverrides.Select(static level => level.Targeting).OfType<SkillTargetingDefinition>())
+                .ToList();
+            foreach (var targeting in skillTargetings)
+            {
+                ValidateDirectionalSelfCast(targeting, targeting.ImpactType ?? defaultImpact, $"ExternalSkill '{skill.Id}'");
+            }
+
+            foreach (var form in skill.FormSkills)
+            {
+                ValidateFormTargeting(form, skillTargetings.Select(t => t.ImpactType ?? defaultImpact), $"FormSkill '{form.Id}'");
+            }
+        }
+
+        foreach (var skill in repository.InternalSkills.Values)
+        {
+            foreach (var form in skill.FormSkills)
+            {
+                ValidateFormTargeting(form, [SkillImpactType.Single], $"FormSkill '{form.Id}'");
+            }
+        }
+
+        foreach (var skill in repository.SpecialSkills.Values)
+        {
+            if (skill.Targeting is { } targeting)
+            {
+                ValidateDirectionalSelfCast(targeting, targeting.ImpactType ?? SkillImpactType.Single, $"SpecialSkill '{skill.Id}'");
+            }
+        }
+    }
+
+    private static void ValidateFormTargeting(
+        FormSkillDefinition form,
+        IEnumerable<SkillImpactType> parentImpactTypes,
+        string owner)
+    {
+        if (form.Targeting is not { } targeting)
+        {
+            return;
+        }
+
+        var impactTypes = targeting.ImpactType is { } own ? [own] : parentImpactTypes;
+        foreach (var impactType in impactTypes)
+        {
+            ValidateDirectionalSelfCast(targeting, impactType, owner);
+        }
+    }
+
+    private static void ValidateDirectionalSelfCast(
+        SkillTargetingDefinition targeting,
+        SkillImpactType impactType,
+        string owner) =>
+        Ensure(targeting.CanCastAtSelf != true || !SkillTargetingDefaults.IsDirectional(impactType),
+            $"{owner} uses directional impact type '{impactType}' and cannot set canCastAtSelf.");
 
     private static void ValidateSpecialSkills(InMemoryContentRepository repository)
     {
