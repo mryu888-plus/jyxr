@@ -50,6 +50,10 @@ internal sealed class InventoryCurrencyStoryCommands
 
     [StoryCommand("change_yuanbao", "yuanbao")]
     public void ChangeYuanbao(int delta) => _session.ProfileService.ChangeYuanbao(delta);
+
+    [StoryCommand("shop_stock")]
+    public void AdjustShopStock(string shopId, string productId, int delta) =>
+        _session.ShopService.AdjustStock(shopId, productId, delta);
 }
 
 internal sealed class AdventureStoryCommands

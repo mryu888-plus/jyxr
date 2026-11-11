@@ -7,11 +7,13 @@ public sealed class ShopService
 {
     private const decimal SellPriceRatio = 0.5m;
     private readonly GameSession _session;
+    private readonly GameConditionExpressionService _conditions;
 
     public ShopService(GameSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
         _session = session;
+        _conditions = new GameConditionExpressionService(session);
     }
 
     private GameState State => _session.State;
@@ -21,12 +23,81 @@ public sealed class ShopService
         ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
 
         var shop = _session.ContentRepository.GetShop(shopId);
+        foreach (var product in shop.Products)
+        {
+            ApplyRestock(shop.Id, product);
+        }
+
         var products = shop.Products
-            .Where(product => IsAvailable(product.Reward))
+            .Where(product => IsListed(product) && IsAvailable(product.Reward))
             .Select(product => CreateProductView(shop.Id, product))
             .ToList();
 
-        return new ShopView(shop, products);
+        return new ShopView(shop, products, State.Shop.GetBuybacks(shop.Id).ToArray());
+    }
+
+    /// <summary>离开商店：本次光顾的回购清单失效，并发布关闭事件供剧情/宿主回调。</summary>
+    public void Close(string shopId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
+        State.Shop.ClearBuybacks(shopId);
+        _session.Events.Publish(new ShopClosedEvent(shopId));
+    }
+
+    /// <summary>剧情调整限购商品的库存（正数加货、负数减货），剩余数量不会低于 0。</summary>
+    public void AdjustStock(string shopId, string productId, int delta)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(productId);
+        var product = GetProduct(_session.ContentRepository.GetShop(shopId), productId);
+        if (product.MaxClaims is null)
+        {
+            throw new InvalidOperationException(
+                $"Shop '{shopId}' product '{productId}' has unlimited stock and cannot be adjusted.");
+        }
+
+        if (delta != 0)
+        {
+            State.Shop.AdjustStock(shopId, productId, delta);
+        }
+    }
+
+    /// <summary>按卖出价买回本次光顾卖出的物品。</summary>
+    public ShopTransactionResult Buyback(string shopId, long buybackNumber, int quantity = 1)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+        var entry = State.Shop.GetBuybacks(shopId).SingleOrDefault(candidate => candidate.Number == buybackNumber);
+        if (entry is null)
+        {
+            return ShopTransactionResult.Failed("该物品已不可回购。");
+        }
+
+        if (quantity > entry.Quantity)
+        {
+            return ShopTransactionResult.Failed($"【{entry.Item.Name}】可回购数量不足。");
+        }
+
+        var totalPrice = checked(entry.UnitPrice * quantity);
+        if (!State.Currency.CanSpendSilver(totalPrice))
+        {
+            return ShopTransactionResult.Failed("银两不足。");
+        }
+
+        State.Currency.SpendSilver(totalPrice);
+        if (entry.Equipment is not null)
+        {
+            State.Inventory.AddEquipmentInstance(entry.Equipment);
+        }
+        else
+        {
+            State.Inventory.AddItem(entry.Item, quantity);
+        }
+
+        State.Shop.RemoveBuyback(shopId, buybackNumber, quantity);
+        _session.Events.Publish(new InventoryChangedEvent());
+        _session.Events.Publish(new CurrencyChangedEvent());
+        return ShopTransactionResult.Succeeded(FormatTransactionMessage("买回", entry.Item.Name, quantity));
     }
 
     public ShopTransactionResult Buy(
@@ -40,9 +111,13 @@ public sealed class ShopService
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         var shop = _session.ContentRepository.GetShop(shopId);
-        var productDefinition = shop.Products.SingleOrDefault(product =>
-            string.Equals(product.Id, productId, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException($"Shop '{shopId}' has no product '{productId}'.");
+        var productDefinition = GetProduct(shop, productId);
+        ApplyRestock(shop.Id, productDefinition);
+        if (!IsListed(productDefinition))
+        {
+            return ShopTransactionResult.Failed($"【{_session.RewardGrantService.GetDisplayName(productDefinition.Reward)}】暂不出售。");
+        }
+
         if (!IsAvailable(productDefinition.Reward))
         {
             return ShopTransactionResult.Failed($"【{_session.RewardGrantService.GetDisplayName(productDefinition.Reward)}】已达等级上限。");
@@ -75,6 +150,12 @@ public sealed class ShopService
         }
 
         Spend(selectedCurrency, totalPrice);
+        if (productDefinition.RestockDays is not null &&
+            State.Shop.GetRestockPeriodStartDay(shop.Id, productDefinition.Id) is null)
+        {
+            State.Shop.BeginRestockPeriod(shop.Id, productDefinition.Id, State.Clock.TotalDays);
+        }
+
         State.Shop.AddPurchasedQuantity(shop.Id, productDefinition.Id, quantity);
         if (selectedCurrency == ShopCurrencyKind.Silver)
         {
@@ -85,7 +166,8 @@ public sealed class ShopService
         return ShopTransactionResult.Succeeded(FormatTransactionMessage("买入", product.DisplayName, quantity));
     }
 
-    public ShopTransactionResult Sell(InventoryEntry entry, int quantity = 1)
+    /// <summary>卖出背包物品。传入 <paramref name="shopId"/> 时记入该商店本次光顾的回购清单。</summary>
+    public ShopTransactionResult Sell(InventoryEntry entry, int quantity = 1, string? shopId = null)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
@@ -106,6 +188,11 @@ public sealed class ShopService
                 }
 
                 State.Inventory.RemoveItem(stack.Definition, quantity);
+                if (shopId is not null)
+                {
+                    State.Shop.AddBuyback(shopId, new ShopBuybackEntry(stack.Definition, quantity, unitPrice));
+                }
+
                 break;
 
             case EquipmentInstanceInventoryEntry equipment:
@@ -114,7 +201,12 @@ public sealed class ShopService
                     return ShopTransactionResult.Failed("独立装备一次只能出售 1 件。");
                 }
 
-                State.Inventory.RemoveEquipmentInstance(equipment.Equipment.Id);
+                var removed = State.Inventory.RemoveEquipmentInstance(equipment.Equipment.Id);
+                if (shopId is not null)
+                {
+                    State.Shop.AddBuyback(shopId, new ShopBuybackEntry(entry.Definition, 1, unitPrice, removed));
+                }
+
                 break;
 
             default:
@@ -145,7 +237,11 @@ public sealed class ShopService
         var purchasedQuantity = State.Shop.GetPurchasedQuantity(shopId, product.Id);
         int? remainingClaims = product.MaxClaims is null
             ? null
-            : Math.Max(0, product.MaxClaims.Value - purchasedQuantity);
+            : Math.Max(0, product.MaxClaims.Value + State.Shop.GetStockAdjustment(shopId, product.Id) - purchasedQuantity);
+        int? restockInDays = product.RestockDays is { } restockDays &&
+            State.Shop.GetRestockPeriodStartDay(shopId, product.Id) is { } periodStart
+                ? Math.Max(1, periodStart + restockDays - State.Clock.TotalDays)
+                : null;
         var item = product.Reward is ItemRewardDefinition itemReward
             ? _session.ContentRepository.GetItem(itemReward.ItemId)
             : null;
@@ -166,7 +262,28 @@ public sealed class ShopService
             price,
             product.PremiumPrice,
             purchasedQuantity,
-            remainingClaims);
+            remainingClaims,
+            restockInDays);
+    }
+
+    private static ShopProductDefinition GetProduct(ShopDefinition shop, string productId) =>
+        shop.Products.SingleOrDefault(product => string.Equals(product.Id, productId, StringComparison.Ordinal))
+        ?? throw new InvalidOperationException($"Shop '{shop.Id}' has no product '{productId}'.");
+
+    private bool IsListed(ShopProductDefinition product) => _conditions.Evaluate(product.When);
+
+    private void ApplyRestock(string shopId, ShopProductDefinition product)
+    {
+        if (product.RestockDays is not { } restockDays ||
+            State.Shop.GetRestockPeriodStartDay(shopId, product.Id) is not { } periodStart)
+        {
+            return;
+        }
+
+        if (State.Clock.TotalDays - periodStart >= restockDays)
+        {
+            State.Shop.Restock(shopId, product.Id);
+        }
     }
 
     private bool IsAvailable(RewardDefinition reward) =>
@@ -244,7 +361,21 @@ public enum ShopCurrencyKind
 
 public sealed record ShopView(
     ShopDefinition Definition,
-    IReadOnlyList<ShopProductView> Products);
+    IReadOnlyList<ShopProductView> Products,
+    IReadOnlyList<ShopBuybackEntry> Buybacks)
+{
+    /// <summary>只能用元宝购买的商品，界面单独分组展示。</summary>
+    public IReadOnlyList<ShopProductView> PremiumProducts =>
+        Products.Where(static product => product.Group == ShopProductGroup.Premium).ToArray();
+}
+
+public enum ShopProductGroup
+{
+    /// <summary>可用银两购买（可能同时支持元宝）。</summary>
+    Silver,
+    /// <summary>只能用元宝购买。</summary>
+    Premium,
+}
 
 public sealed record ShopProductView(
     string ProductId,
@@ -257,8 +388,13 @@ public sealed record ShopProductView(
     int? Price,
     int? PremiumPrice,
     int PurchasedQuantity,
-    int? RemainingClaims)
+    int? RemainingClaims,
+    int? RestockInDays = null)
 {
+    public ShopProductGroup Group => Price is null && PremiumPrice is not null
+        ? ShopProductGroup.Premium
+        : ShopProductGroup.Silver;
+
     public ShopCurrencyKind DefaultCurrencyKind =>
         Price is not null ? ShopCurrencyKind.Silver : ShopCurrencyKind.Gold;
 

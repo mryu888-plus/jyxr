@@ -15,8 +15,11 @@ public partial class ShopPanel : JyPanel
 	public PackedScene TagButtonScene { get; set; } = null!;
 
 	private static readonly ItemCategoryOption SpecialCategory = new("Special", "特殊", null);
+	// 元宝商品单独分组（只在买入时出现），回购只在卖出时出现；两个按钮由“特殊”按钮复制生成。
+	private static readonly ItemCategoryOption PremiumCategory = new("Premium", "元宝", null);
+	private static readonly ItemCategoryOption BuybackCategory = new("Buyback", "回购", null);
 	private static readonly IReadOnlyList<ItemCategoryOption> Categories =
-		ItemCatalogPresentation.Categories.Append(SpecialCategory).ToArray();
+		ItemCatalogPresentation.Categories.Append(SpecialCategory).Append(PremiumCategory).Append(BuybackCategory).ToArray();
 
 	private readonly Dictionary<string, Button> _buttonsByCategoryKey = [];
 	private string _shopId = string.Empty;
@@ -74,6 +77,11 @@ public partial class ShopPanel : JyPanel
 
 	public override void _ExitTree()
 	{
+		if (!string.IsNullOrWhiteSpace(_shopId) && Game.IsInitialized)
+		{
+			Game.ShopService.Close(_shopId);
+		}
+
 		_saveLoadedSubscription?.Dispose();
 		_saveLoadedSubscription = null;
 		base._ExitTree();
@@ -105,7 +113,7 @@ public partial class ShopPanel : JyPanel
 	private void SelectMode(ShopMode mode)
 	{
 		_mode = mode;
-		if (_mode == ShopMode.Sell && _selectedCategory.Key == SpecialCategory.Key)
+		if (!IsCategoryAvailable(_selectedCategory))
 		{
 			_selectedCategory = Categories[0];
 		}
@@ -121,13 +129,34 @@ public partial class ShopPanel : JyPanel
 
 	private void InitializeCategoryButtons()
 	{
+		var template = GetNode<Button>($"%{SpecialCategory.Key}Button");
 		foreach (var category in Categories)
 		{
-			var button = GetNode<Button>($"%{category.Key}Button");
+			var button = category.Key == PremiumCategory.Key || category.Key == BuybackCategory.Key
+				? CreateCategoryButton(template, category)
+				: GetNode<Button>($"%{category.Key}Button");
 			button.Pressed += () => SelectCategory(category);
 			_buttonsByCategoryKey.Add(category.Key, button);
 		}
 	}
+
+	private static Button CreateCategoryButton(Button template, ItemCategoryOption category)
+	{
+		var button = (Button)template.Duplicate();
+		button.UniqueNameInOwner = false;
+		button.Name = $"{category.Key}Button";
+		button.Text = category.DisplayName;
+		template.GetParent().AddChild(button);
+		return button;
+	}
+
+	private bool IsCategoryAvailable(ItemCategoryOption category) =>
+		category.Key switch
+		{
+			"Special" or "Premium" => _mode == ShopMode.Buy,
+			"Buyback" => _mode == ShopMode.Sell,
+			_ => true,
+		};
 
 	private void Refresh()
 	{
@@ -177,8 +206,36 @@ public partial class ShopPanel : JyPanel
 		}
 	}
 
+	private void RefreshBuybacks()
+	{
+		UpdateCategoryButtons();
+		UpdateTagButtons([]);
+		var buybacks = Game.ShopService.Open(_shopId).Buybacks;
+		_countLabel.Text = $"{buybacks.Count} 项";
+		_emptyLabel.Visible = buybacks.Count == 0;
+		foreach (var buyback in buybacks)
+		{
+			var itemBox = CreateItemBox();
+			itemBox.SetupBuyback(buyback, Game.State.Currency.CanSpendSilver(buyback.UnitPrice));
+			itemBox.BuybackSelected += OnBuybackSelected;
+			_gridContainer.AddChild(itemBox);
+		}
+	}
+
+	private void OnBuybackSelected(ShopBuybackEntry buyback)
+	{
+		var result = Game.ShopService.Buyback(_shopId, buyback.Number);
+		HandleTransactionResult(result, showToast: true);
+	}
+
 	private void RefreshInventoryEntries()
 	{
+		if (_selectedCategory.Key == BuybackCategory.Key)
+		{
+			RefreshBuybacks();
+			return;
+		}
+
 		var sourceEntries = Game.State.Inventory.Entries;
 		var tags = ResolveAvailableTags(sourceEntries.Select(entry => entry.Definition));
 		UpdateCategoryButtons();
@@ -282,7 +339,7 @@ public partial class ShopPanel : JyPanel
 	{
 		try
 		{
-			var result = Game.ShopService.Sell(entry);
+			var result = Game.ShopService.Sell(entry, shopId: _shopId);
 			HandleTransactionResult(result, showToast: true);
 		}
 		catch (Exception exception)
@@ -333,6 +390,11 @@ public partial class ShopPanel : JyPanel
 		if (_selectedCategory.Key == SpecialCategory.Key)
 		{
 			return product.IsSpecial;
+		}
+
+		if (_selectedCategory.Key == PremiumCategory.Key)
+		{
+			return product.Group == ShopProductGroup.Premium;
 		}
 
 		if (_selectedCategory.ItemType is null)
@@ -405,7 +467,7 @@ public partial class ShopPanel : JyPanel
 		foreach (var category in Categories)
 		{
 			var button = _buttonsByCategoryKey[category.Key];
-			button.Visible = category.Key != SpecialCategory.Key || _mode == ShopMode.Buy;
+			button.Visible = IsCategoryAvailable(category);
 			var isSelected = category.Key == _selectedCategory.Key;
 			button.Disabled = isSelected && _selectedTagId is null;
 			button.Modulate = isSelected

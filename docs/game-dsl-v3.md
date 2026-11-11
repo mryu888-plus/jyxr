@@ -179,6 +179,7 @@ del quest_stage
 | `add_random_item(item_ids, quantity=1)` | 从非空字符串列表随机选择一种并添加。 | `item_random` |
 | `change_silver(delta)` | 按正负值调整银两。 | `get_money` |
 | `change_yuanbao(delta)` | 按正负值调整元宝。 | `yuanbao` |
+| `shop_stock(shopId, productId, delta)` | 调整限购商品库存（正数加货、负数减货），存档保留；不限购商品不能调整。 | |
 
 ```text
 change_item('小还丹', 5)

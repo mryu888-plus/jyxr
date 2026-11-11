@@ -1366,6 +1366,9 @@ public sealed partial class JsonContentLoader
                 Ensure(product.MaxClaims is null or > 0, $"Shop '{shop.Id}' product {index} has invalid maxClaims.");
                 Ensure(product.Price is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid price.");
                 Ensure(product.PremiumPrice is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid premiumPrice.");
+                Ensure(product.RestockDays is null or > 0, $"Shop '{shop.Id}' product {index} has invalid restockDays.");
+                Ensure(product.RestockDays is null || product.MaxClaims is not null,
+                    $"Shop '{shop.Id}' product {index} restockDays requires maxClaims.");
                 if (reward is YuanbaoRewardDefinition)
                 {
                     Ensure(product.Price is not null && product.PremiumPrice is null,

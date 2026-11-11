@@ -149,6 +149,9 @@ public sealed record StoryStateChangedEvent : ISessionEvent;
 
 public sealed record SaveLoadedEvent : ISessionEvent;
 
+/// <summary>离开商店。剧情或宿主可借此做关店回调。</summary>
+public sealed record ShopClosedEvent(string ShopId) : ISessionEvent;
+
 public sealed record ProfileChangedEvent : ISessionEvent;
 
 public sealed record ProfileLoadedEvent : ISessionEvent;

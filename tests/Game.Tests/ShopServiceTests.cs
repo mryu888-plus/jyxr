@@ -280,6 +280,141 @@ public sealed class ShopServiceTests
         Assert.Equal(new ShopPurchaseRecord("village_shop", "herb", 1), purchase);
     }
 
+    [Fact]
+    public void Open_HidesStoryLockedProductUntilConditionHolds()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop", new ShopProductDefinition
+        {
+            Id = "herb",
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
+            Price = 40,
+            When = new Game.Expressions.ExpressionParser().ParseExpression("has_flag('shop_unlocked')"),
+        });
+        var session = CreateSession([herb], [shop], silver: 100);
+
+        Assert.Empty(session.ShopService.Open(shop.Id).Products);
+        Assert.False(session.ShopService.Buy(shop.Id, "herb").Success);
+
+        session.State.Story.SetVariable("shop_unlocked", Game.Expressions.ExpressionValue.FromBoolean(true));
+
+        Assert.Single(session.ShopService.Open(shop.Id).Products);
+        Assert.True(session.ShopService.Buy(shop.Id, "herb").Success);
+    }
+
+    [Fact]
+    public void Restock_ResetsPurchasedQuantityAfterConfiguredDays()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop", new ShopProductDefinition
+        {
+            Id = "herb",
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
+            Price = 1,
+            MaxClaims = 1,
+            RestockDays = 3,
+        });
+        var session = CreateSession([herb], [shop], silver: 100);
+
+        Assert.True(session.ShopService.Buy(shop.Id, "herb").Success);
+        var soldOut = Assert.Single(session.ShopService.Open(shop.Id).Products);
+        Assert.Equal(0, soldOut.RemainingClaims);
+        Assert.Equal(3, soldOut.RestockInDays);
+
+        session.State.Clock.AdvanceDays(2);
+        Assert.Equal(0, Assert.Single(session.ShopService.Open(shop.Id).Products).RemainingClaims);
+
+        session.State.Clock.AdvanceDays(1);
+        var restocked = Assert.Single(session.ShopService.Open(shop.Id).Products);
+        Assert.Equal(1, restocked.RemainingClaims);
+        Assert.Null(restocked.RestockInDays);
+    }
+
+    [Fact]
+    public void AdjustStock_ChangesRemainingClaimsAndPersists()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop",
+            new ShopProductDefinition
+            {
+                Id = "herb",
+                Reward = new ItemRewardDefinition { ItemId = herb.Id },
+                Price = 1,
+                MaxClaims = 1,
+            },
+            new ShopProductDefinition
+            {
+                Id = "unlimited",
+                Reward = new ItemRewardDefinition { ItemId = herb.Id },
+                Price = 1,
+            });
+        var session = CreateSession([herb], [shop], silver: 100);
+
+        session.ShopService.AdjustStock(shop.Id, "herb", 2);
+
+        Assert.Equal(3, session.ShopService.Open(shop.Id).Products.Single(product => product.ProductId == "herb").RemainingClaims);
+        Assert.Throws<InvalidOperationException>(() => session.ShopService.AdjustStock(shop.Id, "unlimited", 1));
+        var restored = Game.Core.Model.ShopState.Restore(session.State.Shop.ToRecord());
+        Assert.Equal(2, restored.GetStockAdjustment(shop.Id, "herb"));
+    }
+
+    [Fact]
+    public void Restore_OldRecordWithoutNewFieldsLoads()
+    {
+        var restored = Game.Core.Model.ShopState.Restore(
+            JsonSerializer.Deserialize<ShopStateRecord>(
+                """{"purchases":[{"shopId":"s","productId":"p","quantity":2}]}""",
+                GameJson.Default));
+
+        Assert.Equal(2, restored.GetPurchasedQuantity("s", "p"));
+        Assert.Empty(restored.StockAdjustments);
+        Assert.Empty(restored.RestockPeriodStartDays);
+    }
+
+    [Fact]
+    public void Buyback_RestoresSoldItemAtSellPriceUntilShopCloses()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop");
+        var session = CreateSession([herb], [shop], silver: 0);
+        session.State.Inventory.AddItem(herb, 3);
+        var entry = session.State.Inventory.GetStack(herb);
+
+        Assert.True(session.ShopService.Sell(entry, 2, shop.Id).Success);
+        Assert.Equal(30, session.State.Currency.Silver);
+        var buyback = Assert.Single(session.ShopService.Open(shop.Id).Buybacks);
+        Assert.Equal(2, buyback.Quantity);
+        Assert.Equal(15, buyback.UnitPrice);
+
+        var result = session.ShopService.Buyback(shop.Id, buyback.Number);
+
+        Assert.True(result.Success);
+        Assert.Equal(15, session.State.Currency.Silver);
+        Assert.Equal(2, session.State.Inventory.GetStack(herb).Quantity);
+        Assert.Equal(1, Assert.Single(session.ShopService.Open(shop.Id).Buybacks).Quantity);
+
+        var published = CollectPublishedEvents(session);
+        session.ShopService.Close(shop.Id);
+
+        Assert.Empty(session.ShopService.Open(shop.Id).Buybacks);
+        Assert.Contains(published, static sessionEvent => sessionEvent is ShopClosedEvent { ShopId: "village_shop" });
+    }
+
+    [Fact]
+    public void ShopView_GroupsPremiumOnlyProducts()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("premium_shop",
+            new ShopProductDefinition { Id = "silver", Reward = new ItemRewardDefinition { ItemId = herb.Id }, Price = 1 },
+            new ShopProductDefinition { Id = "premium", Reward = new ItemRewardDefinition { ItemId = herb.Id }, PremiumPrice = 2 });
+        var session = CreateSession([herb], [shop], silver: 0);
+
+        var view = session.ShopService.Open(shop.Id);
+
+        Assert.Equal(["premium"], view.PremiumProducts.Select(static product => product.ProductId));
+        Assert.Equal(ShopProductGroup.Silver, view.Products.Single(product => product.ProductId == "silver").Group);
+    }
+
     private static GameSession CreateSession(
         IReadOnlyList<ItemDefinition> items,
         IReadOnlyList<ShopDefinition> shops,

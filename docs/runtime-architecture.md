@@ -54,6 +54,16 @@
 
 武学经书默认按原版修炼（`GameConfig.SkillBookMode = practice`）：对角色使用经书是把它装进角色的修炼位（`CharacterInstance.PracticeBook`，存档字段 `PracticeBookItemId`），原来那本放回背包；此后角色获得的每一笔人物经验——战斗中出招（引擎 `characterExperienceGained` 回调）、战斗结算、剧情 `grant_exp`/`level_up`——都由 `PracticeBookService` 同时加到经书武学上：没学过的先以 1 级学会（受外功/内功数量上限限制），只要当前等级不超过经书等级就继续加 `经验 + 悟性/30`，仍受武学精通上限约束；`IgnoreSkillBookLevelLimit` 去掉经书等级这道限制。`instant` 模式保留“使用即学会到书本等级”的旧行为，不使用修炼位。特技书、天赋书始终是消耗品。
 
+[ShopService](../src/Game.Application/ShopService.cs) 按原版规则买卖：商品可用银两（`price`，缺省取物品价格）或元宝（`premiumPrice`）购买，限购 `maxClaims` 按商店与商品永久累计，卖出价为物品价格的一半。在此之上：
+
+- `when` 表达式为剧情锁定条件，为假时商品不上架也不能购买；
+- `restockDays` 为限购商品的定期补货，从本期第一次购买起经过该天数，已购数量清零；
+- 剧情指令 `shop_stock(shopId, productId, delta)` 调整限购商品库存，与补货周期一起存入 `ShopStateRecord`（新增字段可选，旧存档视为空）；
+- 本次光顾卖出的物品进入回购清单，按卖出价买回，独立装备原实例返回；`Close(shopId)` 清空回购并发布 `ShopClosedEvent`，商店界面离开时调用；
+- `ShopView.PremiumProducts` 把只能用元宝购买的商品单独分组，界面显示为“元宝”分类，回购显示为卖出模式下的“回购”分类。
+
+旧版 `元宝`、`X残章` 商品在转换时已映射为 `yuanbao` 与 `skill_max_level` 奖励类型，运行时不再按内容 ID 特判；商品 ID 保留原名，只用于关联已存档的购买数量。
+
 背包选人界面支持选择使用数量。`ItemUseService` 对可消耗的场外堆叠物品逐件校验、应用效果和扣除库存，返回实际使用数量；条件不再满足或出现未经确认的失效效果时停止，已完成的使用保留。装备、不消耗的物品及剧情效果仅允许单次使用，战斗内物品仍遵循战斗行动规则。
 
 角色派生属性通过 `CharacterInstance.RebuildSnapshot()` 收集装备、天赋和满足条件的技能 affix，再由 resolver 展开。外功激活状态不决定其被动 affix 是否生效；内功 affix 是否要求装备由 `requiresEquippedInternalSkill` 明确表达。新增 affix 来源时要同时检查内容引用解析与角色快照收集。

@@ -16,6 +16,7 @@ public partial class ShopItemBox : TextureButton
 
 	public event Action<ShopProductView>? ProductSelected;
 	public event Action<InventoryEntry>? InventoryEntrySelected;
+	public event Action<ShopBuybackEntry>? BuybackSelected;
 
 	private TextureRect _avatar = null!;
 	private Label _nameLabel = null!;
@@ -27,6 +28,7 @@ public partial class ShopItemBox : TextureButton
 	private EquipmentInstance? _equipment;
 	private ShopProductView? _product;
 	private InventoryEntry? _entry;
+	private ShopBuybackEntry? _buyback;
 	private string _entryFooterText = string.Empty;
 	private bool _canAct = true;
 
@@ -47,12 +49,28 @@ public partial class ShopItemBox : TextureButton
 		ArgumentNullException.ThrowIfNull(product);
 		_product = product;
 		_entry = null;
+		_buyback = null;
 		_item = product.Item;
 		_equipment = null;
 		_entryFooterText = string.Empty;
 		_canAct = canBuy;
 		Disabled = false;
 		TooltipText = product.Description;
+		Refresh();
+	}
+
+	public void SetupBuyback(ShopBuybackEntry buyback, bool canBuy)
+	{
+		ArgumentNullException.ThrowIfNull(buyback);
+		_product = null;
+		_entry = null;
+		_buyback = buyback;
+		_item = buyback.Item;
+		_equipment = buyback.Equipment;
+		_entryFooterText = $"买回 {buyback.UnitPrice}";
+		_canAct = canBuy;
+		Disabled = false;
+		TooltipText = buyback.Item.Name;
 		Refresh();
 	}
 
@@ -71,6 +89,7 @@ public partial class ShopItemBox : TextureButton
 	{
 		ArgumentNullException.ThrowIfNull(entry);
 		_product = null;
+		_buyback = null;
 		_entry = entry;
 		_item = entry.Definition;
 		_equipment = entry is EquipmentInstanceInventoryEntry equipmentEntry
@@ -123,6 +142,12 @@ public partial class ShopItemBox : TextureButton
 		if (_entry is not null)
 		{
 			InventoryEntrySelected?.Invoke(_entry);
+			return;
+		}
+
+		if (_buyback is not null)
+		{
+			BuybackSelected?.Invoke(_buyback);
 		}
 	}
 
@@ -150,9 +175,8 @@ public partial class ShopItemBox : TextureButton
 		}
 
 		_priceLabel.Text = _entryFooterText;
-		_limitLabel.Text = _entry is StackInventoryEntry stack && stack.Quantity > 1
-			? $"x{stack.Quantity}"
-			: string.Empty;
+		var quantity = _entry is StackInventoryEntry stack ? stack.Quantity : _buyback?.Quantity ?? 1;
+		_limitLabel.Text = quantity > 1 ? $"x{quantity}" : string.Empty;
 	}
 
 	private Color ResolveBandColor()
