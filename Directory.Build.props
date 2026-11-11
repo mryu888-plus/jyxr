@@ -3,5 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- 空值约定：内部代码靠可空引用类型保证非空，因此可空警告一律按错误处理。见 docs/runtime-architecture.md「空值约定」。 -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
   </PropertyGroup>
 </Project>

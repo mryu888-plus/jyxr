@@ -19,6 +19,10 @@
 
 `IContentRepository` 不提供全局静态入口：内容仓储随 MOD 组合装配进 `GameSession`，各服务经 session 取用；Godot 侧唯一的全局入口仍是 `Game`（当前 session 的访问门面），读档与重新装配 MOD 时随 session 一起替换，不在别处缓存仓储实例。
 
+### 空值约定
+
+内部层（Game.Core、Game.Presentation）依靠 C# 可空引用类型表达"可能为空"，不写 `ArgumentNullException.ThrowIfNull`；`Directory.Build.props` 把 nullable 警告视为错误，`NullGuardPolicyTests` 防止内部层重新出现运行时空值守卫，合并代码后可用 [tools/StripInternalNullGuards.ps1](../tools/StripInternalNullGuards.ps1) 清理。显式运行时校验只留在边界层：Godot 宿主、Game.Application 用例入口（宿主传入的参数、存档与 MOD 等外部数据）、Game.Content 内容加载入口、Game.Expressions 外部表达式解析。`ArgumentException.ThrowIfNullOrWhiteSpace` 一类对取值的校验不属于空值守卫，可在任何层使用。
+
 ## 会话与持久化
 
 [GameSession](../src/Game.Application/GameSession.cs) 是普通实例，持有当前状态、档案、配置、设置、仓储、应用服务和事件总线。`Game` 是 Godot 的全局访问入口，不是领域单例。
@@ -72,6 +76,10 @@
 
 角色派生属性通过 `CharacterInstance.RebuildSnapshot()` 收集装备、天赋和满足条件的技能 affix，再由 resolver 展开。外功激活状态不决定其被动 affix 是否生效；内功 affix 是否要求装备由 `requiresEquippedInternalSkill` 明确表达。新增 affix 来源时要同时检查内容引用解析与角色快照收集。
 
+角色派生属性通过 `CharacterInstance.RebuildSnapshot()` 收集装备、天赋和满足条件的技能 affix，再由 resolver 展开。外功激活状态不决定其被动 affix 是否生效；内功 affix 是否要求装备由 `requiresEquippedInternalSkill` 明确表达。新增 affix 来源时只需在角色快照收集处接入；其中的内容引用由装配阶段统一解析。
+
+天赋有三层查询，名称即语义：`HasLearnedTalent` / `UnlockedTalents` 只看角色亲自学会的天赋；`HasTalent` / `PossessedTalents` 是学会加上经装备、武学等 affix 授予的全部天赋，被其它天赋 `replaceTalentIds` 替换的天赋仍算拥有，内容条件 `context_unit_has_talent` 与定制效果的天赋判断都用这一层；`HasActiveTalent` / `ActiveTalents` 是拥有且未被替换、实际贡献 affix 效果的天赋。
+
 新游戏与下一周目由 `SessionFlowService` 和 [NewGameStateFactory](../src/Game.Application/NewGameStateFactory.cs) 装配。下一周目保留银两和储物箱、重建初始队伍；全局元宝保留在 GameProfile。
 
 ## MOD 启动与内容装配
@@ -90,7 +98,14 @@ Android 启动器在扫描 MOD 前检查“所有文件访问权限”；未授�
 
 `autoload` 是场景存放目录，不是 Godot autoload 注册。重复初始化会更换 session 和资源上下文，但不会完整销毁旧地图、面板、音乐与运行时节点；它不等于进程内 MOD 热切换。正式 reset/reload 仍需明确清理流程，并先 flush 宿主待保存档案。
 
-[JsonContentLoader](../src/Game.Content/Loading/JsonContentLoader.cs) 负责定义索引、引用解析、affix 解析与仓储校验。正式内容不从 SampleData 读取；故事加载保持同步，避免 Godot 主线程 sync-over-async。当前定义依赖按有向无环图装配；若引入循环引用，需明确设计注册与 resolve 两阶段。
+[JsonContentLoader](../src/Game.Content/Loading/JsonContentLoader.cs) 负责定义索引、引用解析与仓储校验，装配分两阶段：
+
+1. 注册：反序列化得到的全部定义按 ID 登记进 `InMemoryContentRepository`，此时引用尚未解析。
+2. 解析：[ContentReferenceResolver](../src/Game.Content/Loading/ContentReferenceResolver.cs) 以仓库中的每个定义为起点，交给 [ContentReferenceGraph](../src/Game.Core/Definitions/ContentReferenceGraph.cs) 遍历序列化成员；遇到 `ContentReference<T>`（或"任意武学"的 `SkillSourceReference`）就按 ID 解析成已注册的定义，遇到 `IContentResolutionHook` 就执行定义自有的解析步骤（如自定义战斗效果按参数绑定处理器，并解析参数里的引用）。解析只按 ID 查表、不调用其它定义的解析，因此与顺序无关，定义间可以循环引用。缺失引用在这一步失败，错误信息带出从顶层定义到字段的 JSON 路径。
+
+引用的建模规则：运行期需要拿到定义对象的引用声明为 `ContentReference<T>`，定义只保存这一个字段，原有的 `TalentId` / `Buff` 等成员是从它计算出的只读视图；只用于身份比较或作索引键的 ID（战斗角色、地图、商店、hook 条件等）保持字符串，由仓储校验检查存在性。自定义战斗效果参数对校验不透明，其中的天赋、Buff、角色、武学 ID 一律声明为引用类型（`ContentAssemblyTests` 会检查）。运行期新建或从存档读出的带引用对象（如装备随机词条）同样用 `ContentReferenceGraph.Resolve` 解析。
+
+正式内容不从 SampleData 读取；故事加载保持同步，避免 Godot 主线程 sync-over-async。
 
 新增定义、修改已有定义、地图与剧情目录规则统一见 [MOD 数据补丁](mod-data-patching.md)。MOD 资源覆盖只走 PCK，[AssetResolver](../src/Game.Godot/Resources/AssetResolver.cs) 统一加载内置或已覆盖资源，不读取 MOD loose assets。
 
