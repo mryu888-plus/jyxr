@@ -1,6 +1,5 @@
 # TODO
 
-- `nvliumang`（移动）、`nvpanjun`（移动）、`huangrong`（移动、受击） 的模型动画帧区域、播放顺序与偏移均由 AI 根据现有图集推断，可能不正确；后续需要结合原始动画数据或人工逐帧校验并修正。
 - 内容加载目前只是“DTO 校验 + 按顺序构建 runtime definitions”，还不是真正的二阶段加载。后续如需支持定义间循环依赖，应改成“先注册 runtime definition 空壳，再统一 resolve 引用”的两阶段装配流程。
 - 当前 affix 引用解析集中在 `JsonContentLoader.ResolveAffixes(...)`，而不是各 definition 自己的 `Resolve(...)` 方法。后续如继续扩展 affix 来源，应把 affix 引用解析入口收敛成更明确的专门服务或 definition 统一协议，避免新增来源时漏掉 `GrantTalentAffix` 等需要 resolve 的条目。
 - `CharacterProjection.EffectiveTalents` / `CharacterInstance.HasEffectiveTalent(...)` 当前实际表达“已学习或经 Affix 授予的候选天赋闭包”：被其他天赋通过 `ReplaceTalentIds` 替换后，只屏蔽其 Affix 效果，仍保留在该集合中并继续满足天赋存在性判断。这个行为符合当前设计，但 `Effective` 命名容易让人误以为被替换天赋已从集合移除；后续应将其重命名为能表达候选/可判断语义的名称，或显式拆分“候选天赋”和“实际贡献效果的天赋”两套查询，避免内容条件和定制 handler 误用。
