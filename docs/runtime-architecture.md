@@ -108,6 +108,12 @@ Android 启动器在扫描 MOD 前检查“所有文件访问权限”；未授�
 
 大地图分别记忆当前位置；首次进入使用 defaultLocation，显式入口可指定已有地点。移动耗时与坐标协议见 MOD 数据文档。命令在异步等待前后都校验所属 GameState，旧交互不继续派发或给新状态标记完成、请求存档。
 
+地图沿用原版的“地点 + 事件”模型，不引入连续地形或区域网格：
+
+- 地点级 `when` 是通行条件：为假时地点不出现、不能前往，事件也不参与判定；这覆盖了原版“满足条件才开放的地点/路线”。场景切换锚点即 `map(mapId, locationId)` 的显式落点，属于剧情决定，不受地点条件约束。
+- 宝箱、门、机关、调查点、采集点、触发器都是带事件的地点，`interactable` 只标注种类供宿主表现；`MapService.GetInteractableState(...)` 从地点条件、事件条件和一次性事件进度推导 `Available`、`Exhausted`（全部为一次性且已完成，如已开的宝箱）或 `Inactive`，不另存状态。
+- 遭遇战即带 `battle(...)` action 的地点事件：入口与触发条件就是事件的 `when`（原版概率遇敌为 `chance(p)`）和 `repeatMode`；结果回写由 [BattleResultProjection](../src/Game.Application/Battle/BattleEncounterOutcome.cs) 决定：`battle(id, win_story?, lose_story?)` 胜利执行胜利剧情，失败执行失败剧情，未配置失败剧情时与原版一致判定游戏结束。内容加载会校验战斗与结果剧情都存在。
+
 `World.RefreshCurrentMap()` 原地更新展示，不重新进入地图，也不重新选播 BGM。成功结束整段地图交互、全局事件、限时剧情或独立调试剧情时，通过 `ReturnToMap` 恢复血量、内力、怒气和技能冷却；连续战斗中途不执行此操作。宿主响应 `MapReturnedEvent` 刷新地图和 HUD，恢复地图音乐（没有地图音乐则停止 BGM，相同播放列表保持播放）。自动存档发生在资源恢复之后。读档使用 `World.RestoreCurrentMap()` 重建视图，保留存档中的战斗资源，避免继承旧交互的忙碌状态。
 
 [WorldTriggerService](../src/Game.Application/WorldTriggerService.cs) 保存与发起状态绑定的待检查请求和执行中状态：

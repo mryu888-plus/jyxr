@@ -142,6 +142,11 @@ public sealed class MapService
         var locations = new List<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>(map.Locations.Count);
         foreach (var location in map.Locations)
         {
+            if (!_conditions.Evaluate(location.When))
+            {
+                continue;
+            }
+
             var mapEvent = FindTriggerEvent(map.Id, location);
             if (mapEvent is null &&
                 (map.Kind == MapKind.Small ||
@@ -154,6 +159,28 @@ public sealed class MapService
         }
 
         return locations;
+    }
+
+    /// <summary>推导地点作为交互对象的当前状态，供宿主选择图像（例如已开宝箱用 noEventImage）与提示。</summary>
+    public MapInteractableState GetInteractableState(string mapId, MapLocationDefinition location)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
+        ArgumentNullException.ThrowIfNull(location);
+        if (!_conditions.Evaluate(location.When))
+        {
+            return MapInteractableState.Inactive;
+        }
+
+        if (location.Events.Count > 0 &&
+            location.Events.All(mapEvent =>
+                mapEvent.RepeatMode == RepeatMode.Once && IsOnceEventCompleted(mapId, location.Id, mapEvent.Id)))
+        {
+            return MapInteractableState.Exhausted;
+        }
+
+        return FindTriggerEvent(mapId, location) is null
+            ? MapInteractableState.Inactive
+            : MapInteractableState.Available;
     }
 
     private MapEventDefinition? FindTriggerEvent(string mapId, MapLocationDefinition location)

@@ -8,9 +8,6 @@
 - `博览群书` 当前先用现有无参数 trait 表达，并在奥义触发率计算中写死触发倍率 `+0.5`；后续如果类似规则增多，可考虑把 trait 升级为带参数规则 trait，避免规则数值长期散落在代码里。
 - 四系中文名称目前分为属性名 `拳掌 / 剑法 / 刀法 / 奇门` 与技能系名 `拳掌 / 剑 / 刀 / 奇门`；后者为复刻 legacy 的“拳掌系 / 剑系 / 刀系 / 奇门系技能加成”文案，暂在 `AffixFormatter` 内局部映射。后续应把两套语义不同的名称集中到 `FormatterTextCn` 等统一文本入口，明确区分属性名与技能系名，避免新增四系词条、筛选或 UI 文案时重复散落映射。
 - 统一空值校验策略：内部代码以 C# nullable reference types 为主，边界层（宿主入口、内容加载入口、外部输入入口）保留显式运行时校验，避免在内部领域代码中堆积大量 `ArgumentNullException.ThrowIfNull`。
-- 当前地图采用地点与事件模型，已由 `MapDefinition`、`LocationState` 和 `MapEventProgressState` 承载。后续如需连续地形、区域、可通行性或场景切换锚点，再扩展相应模型。
-- 地图交互对象待建模：`InteractableDefinition`、`InteractableState`、`MapObjectDefinition`、`MapObjectState`，用于承载宝箱、门、机关、调查点、采集点、触发器等。
 - 剧情已有对白、选项及宿主演出命令。后续如需要统一镜头、角色入退场和多轨演出的时序，再设计独立演出序列模型。
-- 地图与战斗的衔接对象待建模：`BattleEncounterDefinition`、`EncounterTriggerDefinition`、`BattleResultProjection`，用于表达地图遭遇战入口、触发条件，以及战斗结果如何回写世界状态。
 - `BeforeHitResolved` 应只承载命中结果确定前的闪避、破闪避、失手等逻辑。后续内容校验应禁止来源侧 `context_hit_state == hit` 的 hook，命中确认后的追加效果应使用 `OnHitConfirmed`，避免数据写法被运行时静默跳过。
 - 当前 DTO 与 runtime definition 存在较多重复字段。后续应收缩 DTO 噪音：优先只保留确有 raw/runtime 差异的类型，并考虑把 DTO 模型进一步内聚到 loader 内部，避免扩散成整层平行定义。

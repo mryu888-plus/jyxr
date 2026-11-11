@@ -1705,6 +1705,27 @@ public sealed partial class JsonContentLoader
             return;
         }
 
+        if (action.Root.Name == "battle")
+        {
+            // battle(id, win_story?, lose_story?)：战斗与结果剧情都必须存在。
+            if (TryGetLiteralArgument(action, 0, out var battleId))
+            {
+                Ensure(repository.Battles.ContainsKey(battleId),
+                    $"{owner} action 'battle' references missing target '{battleId}'.");
+            }
+
+            for (var index = 1; index < Math.Min(3, action.Root.Arguments.Count); index++)
+            {
+                if (TryGetLiteralArgument(action, index, out var storyId) && !string.IsNullOrWhiteSpace(storyId))
+                {
+                    Ensure(repository.StorySegments.ContainsKey(storyId),
+                        $"{owner} action 'battle' references missing result story '{storyId}'.");
+                }
+            }
+
+            return;
+        }
+
         if (!TryGetLiteralActionId(action, out var targetId))
         {
             return;
@@ -1756,6 +1777,19 @@ public sealed partial class JsonContentLoader
 
     private static bool IsMapCommand(string name) =>
         name is "map" or "set_map" or "tutorial";
+
+    private static bool TryGetLiteralArgument(ParsedCall action, int index, out string value)
+    {
+        value = string.Empty;
+        if (action.Root.Arguments.Count <= index ||
+            action.Root.Arguments[index] is not LiteralExpressionSyntax { Value.Kind: ExpressionValueKind.String } literal)
+        {
+            return false;
+        }
+
+        value = literal.Value.AsString("action argument");
+        return true;
+    }
 
     private static bool TryGetLiteralActionId(ParsedCall action, out string targetId)
     {

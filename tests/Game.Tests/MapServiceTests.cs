@@ -941,6 +941,49 @@ public sealed class MapServiceTests
     private static string ActionId(MapEventDefinition mapEvent) =>
         CallArgument(mapEvent.Action);
 
+    [Fact]
+    public void LocationWhen_HidesImpassableLocationUntilConditionHolds()
+    {
+        var gate = CreateLocation("gate", events: [MapEvent("1", "story('enter')")]) with
+        {
+            When = new ExpressionParser().ParseExpression("has_flag('gate_open')"),
+        };
+        var map = CreateMap("town", MapKind.Small, gate, CreateLocation("inn", events: [MapEvent("1", "story('rest')")]));
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(maps: [map]));
+
+        Assert.Equal(["inn"], session.MapService.EnterMap("town").Locations.Select(static location => location.Location.Id));
+        Assert.Equal(MapInteractableState.Inactive, session.MapService.GetInteractableState("town", gate));
+
+        session.State.Story.SetVariable("gate_open", ExpressionValue.FromBoolean(true));
+
+        Assert.Equal(["gate", "inn"], session.MapService.EnterMap("town").Locations.Select(static location => location.Location.Id));
+        Assert.Equal(MapInteractableState.Available, session.MapService.GetInteractableState("town", gate));
+    }
+
+    [Fact]
+    public void InteractableState_OnceOnlyChestBecomesExhaustedAfterOpening()
+    {
+        var chest = CreateLocation("chest", events: [MapEvent("1", "story('loot')") with { RepeatMode = RepeatMode.Once }], noEventImage: "chest_open") with
+        {
+            Interactable = MapInteractableKind.Chest,
+        };
+        var map = CreateMap("cave", MapKind.Small, chest);
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(maps: [map]));
+
+        Assert.Equal(MapInteractableState.Available, session.MapService.GetInteractableState("cave", chest));
+
+        session.State.MapEventProgress.MarkCompleted("cave", "chest", "1");
+
+        Assert.Equal(MapInteractableState.Exhausted, session.MapService.GetInteractableState("cave", chest));
+    }
+
+    private static MapEventDefinition MapEvent(string id, string action) =>
+        new()
+        {
+            Id = id,
+            Action = new ExpressionParser().ParseCall(action),
+        };
+
     private static MapDefinition CreateMap(string id, MapKind kind, params MapLocationDefinition[] locations) =>
         new()
         {

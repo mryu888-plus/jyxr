@@ -62,15 +62,25 @@ public sealed partial class GodotStoryRuntimeHost
 		new(UIRoot.Instance.ShowChestPanelAsync(cancellationToken));
 
 	[StoryCommand("battle")]
-	private async ValueTask ExecuteBattleAsync(string battleId, CancellationToken cancellationToken)
+	private async ValueTask ExecuteBattleAsync(
+		string battleId,
+		string winStoryId = "",
+		string loseStoryId = "",
+		CancellationToken cancellationToken = default)
 	{
 		var selected = await UIRoot.Instance.ShowCombatantSelectPanelAsync(battleId, cancellationToken);
 		var isWin = await UIRoot.Instance.ShowBattleScreenAsync(
 			new OrdinaryBattleRequest(battleId, selected.ToArray()),
 			cancellationToken);
-		if (!isWin)
+		var followUp = BattleResultProjection.FromCommandArguments(winStoryId, loseStoryId).Resolve(isWin);
+		switch (followUp.Kind)
 		{
-			GameFlow.GameOver();
+			case BattleEncounterFollowUpKind.GameOver:
+				GameFlow.GameOver();
+				break;
+			case BattleEncounterFollowUpKind.RunStory:
+				await ExecuteStoryAsync(followUp.StoryId!, cancellationToken);
+				break;
 		}
 	}
 
