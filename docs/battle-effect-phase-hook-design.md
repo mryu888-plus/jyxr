@@ -33,20 +33,30 @@ Hook 按稳定来源顺序收集并执行。错误 timing 或不支持的 Effect
 Effect handler 通过窄接口申请能力：
 
 - `IHitResultEffectContext`：修改命中结果；
-- `IDamageCalculationEffectContext`：修改普通伤害公式；
-- `IDamageApplicationEffectContext`：修改落血目标和数值；
-- `IDamageTakenEffectContext`：读取实际受伤并追加反应；
+- `IDamageCalculationEffectContext`：修改普通伤害公式、记录不受封顶影响的追加伤害；
+- `IHitConfirmedEffectContext`：命中后的位移、Buff、内力伤害与内力恢复；
+- `IDamageApplicationEffectContext`：落血前的封顶、取消、改写落点，`TransferDamage` 转移承伤分量、
+  `ReflectDamage` 反弹、`ShareDamage` 分摊，以及气血恢复与内力伤害；可读取本次伤害的归因与减伤方式；
+- `IDamageTakenEffectContext` / `IDamageDealtEffectContext`：读取实际受伤并追加反应、修改吸血倍率；
+- `IDefeatPreventionEffectContext`：读取能力次数，`TryPreventDefeat` 原子地阻止败北；
 - `IRecoveryEffectContext`：修改恢复量；
 - `ISkillCostEffectContext`：修改技能消耗；
 - `IBuffApplicationEffectContext`：取消或强化 Buff 应用；
-- `IActionStartEffectContext`：跳过行动开始。
+- `IActionStartEffectContext`：跳过行动、设置怒气、恢复气血、内力伤害；
+- `IActionReadinessEffectContext`：行动前清除负面状态。
 
-专用 handler 只能接收声明的能力。例如真武增伤只能访问伤害计算，真武挡刀只能访问落血前
-改写，怪病只能访问行动开始。内容装配和运行入口都会拒绝错误组合。
+每个能力接口只在对应 timing 可用。基础 `IBattleEffectContext` 只承载公共信息，不是能力：handler 不能以它为
+上下文类型，也不能向下转换为 `BattleHookContext` 或访问 `Engine`、resolver。`CustomBattleEffectRegistry`
+注册时和内容装配绑定时都会校验“能力类型 × timing”，错误组合直接失败。
+
+败北阻止效果先在 handler 内完成资格与概率判断，再把要提交的全部资源变化交给 `TryPreventDefeat`：已被更高
+优先级效果阻止或内力不足时不改变任何状态；成功时以 1 HP 存活（这是阻止本身，不经恢复修正），随后经 resolver
+提交内力代价、气血/内力恢复（经过 `BeforeRecoveryResolved`）与怒气设置并产出事实，最后登记能力次数。
 
 ## 4. 状态变化入口
 
-- `BattleDamageResolver`：普通伤害与实际扣血；
+- `BattleDamageResolver`：所有伤害的公共结算管线（伤害描述、承伤分量、承伤后响应、战败、来源侧响应），
+  见 `battle-damage-timing-design.md`；
 - `BattleRecoveryResolver`：恢复量修正和实际恢复，返回请求量、修正量和实际量；
 - `BattleBuffResolver`：Buff 应用、抵抗、强化与移除；
 - `BattleResourceResolver`：怒气、行动条等资源；

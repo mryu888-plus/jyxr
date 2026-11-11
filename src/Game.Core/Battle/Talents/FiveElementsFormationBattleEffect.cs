@@ -9,13 +9,13 @@ public sealed record FiveElementsFormationDamageShareParameters(
     [property: Probability] double Chance = 0.5d);
 
 internal sealed class FiveElementsFormationDamageShareHandler
-    : CustomBattleEffectHandler<FiveElementsFormationDamageShareParameters, IDamageApplicationRuntimeContext>
+    : CustomBattleEffectHandler<FiveElementsFormationDamageShareParameters, IDamageApplicationEffectContext>
 {
     public override IReadOnlySet<HookTiming> SupportedTimings { get; } =
         new HashSet<HookTiming> { HookTiming.BeforeDamageApplied };
 
     public override void Execute(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         FiveElementsFormationDamageShareParameters parameters)
     {
         if (context.DamageAmount <= 0 || context.Target is null) return;
@@ -32,7 +32,7 @@ internal sealed class FiveElementsFormationDamageShareHandler
         var targetShare = context.DamageAmount - share * participants.Count;
         foreach (var participant in participants)
         {
-            context.ApplyDirectDamage(participant, share, parameters.TalentId);
+            context.ShareDamage(participant, share, parameters.TalentId);
             context.RequestSpeech(participant, parameters.Speech);
         }
         context.CapDamage(targetShare);

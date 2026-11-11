@@ -13,10 +13,10 @@ public sealed class HeavenAndEarthSameLifespanBattleEffectHandler
         foreach (var target in context.Targets)
         {
             var damage = (int)(sourceHp * (0.5d + context.Random.NextDouble() * 0.5d));
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
 
-        context.ApplyDirectDamage(context.Source, sourceHp, context.Skill.Id);
+        context.PayHpCost(sourceHp);
     }
 
     public override int? EstimateDamage(

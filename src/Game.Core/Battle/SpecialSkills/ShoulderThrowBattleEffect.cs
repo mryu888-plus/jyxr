@@ -25,7 +25,7 @@ public sealed class ShoulderThrowBattleEffectHandler
             var damage = resolveDifference == 0
                 ? 0
                 : context.Random.Next(resolveDifference * 5, resolveDifference * 20 + 1);
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
     }
 

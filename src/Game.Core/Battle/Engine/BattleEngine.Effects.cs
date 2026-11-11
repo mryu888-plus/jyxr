@@ -66,14 +66,17 @@ public sealed partial class BattleEngine
         var result = _damageCalculator.CalculateSkillDamage(damageCalculation);
         var damageMultiplier = BattleDamageRules.GetSkillDamageMultiplier(source, target);
         var resolvedDamageAmount = (int)Math.Floor(result.Amount * damageMultiplier);
-        var damageApplication = _damageResolver.Apply(
-            state,
+        var uncappedBonus = (int)Math.Floor(damageCalculation.UncappedBonusDamage * damageMultiplier);
+        var damageApplication = ResolveDamage(state, BattleDamageDescriptor.ForSkill(
             source,
             target,
             resolvedDamageAmount,
-            skill,
-            result.IsCritical,
-            lifestealRateBonus: damageCalculation.AdditionalLifestealRate);
+            skill) with
+        {
+            IsCritical = result.IsCritical,
+            LifestealRateBonus = damageCalculation.AdditionalLifestealRate,
+            UncappedBonusAmount = Math.Max(0, uncappedBonus),
+        });
 
         return new BattleSkillHitResolution(
             damageApplication.Target,
@@ -225,15 +228,16 @@ public sealed partial class BattleEngine
                 continue;
             }
 
-            var damage = _damageResolver.Apply(
-                context.State,
+            var damage = ResolveDamage(context.State, BattleDamageDescriptor.ForExtraStrike(
                 context.Source ?? context.Unit,
                 target,
                 amount,
-                context.Skill,
-                context.IsCritical,
-                eventTiming: context.Timing,
-                detail: "extra_strike");
+                context.Skill) with
+            {
+                IsCritical = context.IsCritical,
+                EventTiming = context.Timing,
+                Detail = "extra_strike",
+            });
             if (damage.ActualAmount <= 0)
             {
                 continue;
@@ -383,14 +387,10 @@ public sealed partial class BattleEngine
         }
 
         var source = state.TryGetUnit(buff.SourceUnitId) ?? unit;
-        _damageResolver.Apply(
-            state,
-            source,
-            unit,
-            damage,
-            runBeforeDamageApplied: false,
-            runAfterDamageApplied: false,
-            detail: buff.Definition.Id);
+        ResolveDamage(state, BattleDamageDescriptor.ForPeriodic(source, unit, damage) with
+        {
+            Detail = buff.Definition.Id,
+        });
     }
 
     private void ApplyRecoveryTick(BattleState state, BattleUnit unit, BattleBuffInstance buff)

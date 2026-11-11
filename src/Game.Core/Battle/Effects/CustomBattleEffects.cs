@@ -72,6 +72,7 @@ public sealed class CustomBattleEffectRegistry
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(effectId);
         ArgumentNullException.ThrowIfNull(handler);
+        BattleEffectCapabilityPolicy.EnsureSupported<TContext>(effectId, handler.SupportedTimings);
 
         if (!_handlers.TryAdd(effectId, new CustomBattleEffectHandlerAdapter<TParameters, TContext>(handler)))
         {
@@ -175,14 +176,7 @@ public sealed class CustomBattleEffectRegistry
     {
         public CustomBattleEffectInvocation Bind(string effectId, JsonElement parameters)
         {
-            foreach (var timing in handler.SupportedTimings)
-            {
-                if (!BattleEffectCapabilityPolicy.Supports<TContext>(timing))
-                {
-                    throw new InvalidOperationException(
-                        $"Custom battle effect '{effectId}' cannot use capability '{typeof(TContext).Name}' at timing '{timing}'.");
-                }
-            }
+            BattleEffectCapabilityPolicy.EnsureSupported<TContext>(effectId, handler.SupportedTimings);
 
             TParameters parsedParameters;
             try
@@ -260,7 +254,6 @@ internal static class BattleEffectCapabilityPolicy
             [typeof(IHitResultEffectContext)] = HookTiming.BeforeHitResolved,
             [typeof(IHitConfirmedEffectContext)] = HookTiming.OnHitConfirmed,
             [typeof(IDamageApplicationEffectContext)] = HookTiming.BeforeDamageApplied,
-            [typeof(IDamageApplicationRuntimeContext)] = HookTiming.BeforeDamageApplied,
             [typeof(IDamageTakenEffectContext)] = HookTiming.OnDamageTaken,
             [typeof(IDamageDealtEffectContext)] = HookTiming.OnDamageDealt,
             [typeof(IDefeatPreventionEffectContext)] = HookTiming.BeforeDefeated,
@@ -272,11 +265,36 @@ internal static class BattleEffectCapabilityPolicy
             [typeof(IActionReadinessEffectContext)] = HookTiming.BeforeActionReadiness,
         };
 
+    /// <summary>
+    /// 能力接口只在对应 timing 可用。基础 <see cref="IBattleEffectContext"/> 不是能力，不能作为 handler 的
+    /// 上下文类型，以免声明最宽上下文后再向下转换绕过 timing 与能力边界。
+    /// </summary>
     public static bool Supports<TContext>(HookTiming timing)
+        where TContext : class, IBattleEffectContext =>
+        SupportedTimings.TryGetValue(typeof(TContext), out var supportedTiming) && supportedTiming == timing;
+
+    public static void EnsureSupported<TContext>(string effectId, IReadOnlySet<HookTiming> timings)
         where TContext : class, IBattleEffectContext
     {
-        var contextType = typeof(TContext);
-        return contextType == typeof(IBattleEffectContext) ||
-            SupportedTimings.TryGetValue(contextType, out var supportedTiming) && supportedTiming == timing;
+        ArgumentNullException.ThrowIfNull(timings);
+        if (typeof(TContext) == typeof(IBattleEffectContext))
+        {
+            throw new InvalidOperationException(
+                $"Custom battle effect '{effectId}' must declare a capability context instead of '{nameof(IBattleEffectContext)}'.");
+        }
+
+        if (timings.Count == 0)
+        {
+            throw new InvalidOperationException($"Custom battle effect '{effectId}' declares no supported timing.");
+        }
+
+        foreach (var timing in timings)
+        {
+            if (!Supports<TContext>(timing))
+            {
+                throw new InvalidOperationException(
+                    $"Custom battle effect '{effectId}' cannot use capability '{typeof(TContext).Name}' at timing '{timing}'.");
+            }
+        }
     }
 }

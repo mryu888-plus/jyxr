@@ -12,10 +12,10 @@ public sealed class MutualDestructionSwordBattleEffectHandler
         foreach (var target in context.Targets)
         {
             var damage = 1000 + (int)(target.MaxHp * context.Random.NextDouble() * 0.2d);
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
 
-        context.ApplyDirectDamage(context.Source, 1000, context.Skill.Id);
+        context.PayHpCost(1000);
     }
 
     public override int? EstimateDamage(

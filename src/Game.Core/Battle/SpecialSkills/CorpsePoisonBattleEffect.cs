@@ -18,7 +18,7 @@ public sealed class CorpsePoisonBattleEffectHandler
 
             var baseDamage = (poison.Level + 1) * poison.RemainingTurns * 50;
             var damage = (int)(baseDamage * (1d + context.Random.NextDouble()));
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
     }
 

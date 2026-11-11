@@ -25,8 +25,7 @@ public sealed class BattleHookContext :
     ISkillCostEffectContext,
     IBuffApplicationEffectContext,
     IActionReadinessEffectContext,
-    IActionStartEffectContext,
-    IDamageApplicationRuntimeContext
+    IActionStartEffectContext
 {
     internal BattleHookContext(
         BattleEngine engine,
@@ -85,11 +84,27 @@ public sealed class BattleHookContext :
 
     public double? LifestealRate { get; internal set; }
 
+    /// <summary>BeforeDamageApplied 期间正在结算的伤害描述。</summary>
+    internal BattleDamageDescriptor? DamageBeingApplied { get; set; }
+
+    /// <summary>BeforeDamageApplied 中是否有效果取消了本次伤害（取消的伤害不再追加不受封顶影响的额外伤害）。</summary>
+    internal bool IsDamageCancelled { get; private set; }
+
+    private List<BattleDamageComponent>? _pendingDamageTransfers;
+
+    /// <summary>BeforeDamageApplied 中经 TransferDamage 产生、尚未结算的承伤分量。</summary>
+    internal IReadOnlyList<BattleDamageComponent> PendingDamageTransfers =>
+        _pendingDamageTransfers ?? (IReadOnlyList<BattleDamageComponent>)[];
+
     BattleDamageCalculationContext IDamageCalculationEffectContext.DamageCalculation =>
         DamageCalculation ?? throw MissingCapability(nameof(IDamageCalculationEffectContext));
 
     int IDamageApplicationEffectContext.DamageAmount =>
         DamageAmount ?? throw MissingCapability(nameof(IDamageApplicationEffectContext));
+    BattleDamageOrigin IDamageApplicationEffectContext.DamageOrigin =>
+        DamageBeingApplied?.Origin ?? throw MissingCapability(nameof(IDamageApplicationEffectContext));
+    BattleDamageMitigation IDamageApplicationEffectContext.DamageMitigation =>
+        DamageBeingApplied?.Mitigation ?? throw MissingCapability(nameof(IDamageApplicationEffectContext));
 
     BattleHitState IHitResultEffectContext.HitState { get => HitState; set => HitState = value; }
     int IHitResultEffectContext.DamageAmount
@@ -253,7 +268,56 @@ public sealed class BattleHookContext :
         }
 
         DamageAmount = 0;
+        IsDamageCancelled = true;
         SuppressHitEffects |= suppressHitEffects;
+    }
+
+    public void TransferDamage(BattleUnit target, int amount, string? detail = null)
+    {
+        EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be transferred");
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        var current = DamageAmount ?? 0;
+        var transferred = Math.Min(amount, current);
+        if (transferred <= 0)
+        {
+            return;
+        }
+
+        DamageAmount = current - transferred;
+        (_pendingDamageTransfers ??= []).Add(new BattleDamageComponent(target, transferred, detail, IsTransfer: true));
+    }
+
+    public int ReflectDamage(BattleUnit target, int amount, string? detail = null)
+    {
+        EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be reflected");
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        return Engine.ResolveDamage(State, BattleDamageDescriptor.ForReflection(Unit, target, amount) with
+        {
+            Detail = detail,
+            EventTiming = Timing,
+        }).ActualAmount;
+    }
+
+    public int ShareDamage(BattleUnit target, int amount, string? detail = null)
+    {
+        EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be shared");
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        return Engine.ResolveDamage(State, BattleDamageDescriptor.ForShare(Source ?? Unit, target, amount) with
+        {
+            Detail = detail,
+            EventTiming = Timing,
+        }).ActualAmount;
+    }
+
+    private void EnsureTiming(HookTiming expected, string operation)
+    {
+        if (Timing != expected)
+        {
+            throw new InvalidOperationException($"{operation} during '{expected}'.");
+        }
     }
 
     private void ResetUnitSkillCooldowns(string? detail)
@@ -272,58 +336,68 @@ public sealed class BattleHookContext :
             detail: detail));
     }
 
-    public void PreventDefeat(string abilityId)
+    int IDefeatPreventionEffectContext.GetAbilityUsageCount(string abilityId) =>
+        Unit.GetAbilityUsageCount(abilityId);
+
+    bool IDefeatPreventionEffectContext.TryPreventDefeat(BattleDefeatPrevention prevention)
     {
-        if (Timing != HookTiming.BeforeDefeated)
+        EnsureTiming(HookTiming.BeforeDefeated, "Defeat can only be prevented");
+        ArgumentNullException.ThrowIfNull(prevention);
+        if (IsDefeatPrevented || Unit.IsAlive || Unit.Mp < prevention.MpCost)
         {
-            throw new InvalidOperationException(
-                $"Defeat can only be prevented during '{HookTiming.BeforeDefeated}'.");
+            return false;
         }
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(abilityId);
-        if (!Unit.IsAlive)
-        {
-            throw new InvalidOperationException(
-                $"Unit '{Unit.Id}' must be alive before defeat can be prevented.");
-        }
-
-        if (IsDefeatPrevented)
-        {
-            throw new InvalidOperationException(
-                $"Defeat has already been prevented for unit '{Unit.Id}'.");
-        }
-
+        // 阻止败北本身：以 1 HP 存活。它不是恢复，不经过恢复修正，否则重伤等会让阻止失效。
+        Unit.RestoreHp(1);
         IsDefeatPrevented = true;
         State.AddMessage(new BattleFact(
             BattleFactKind.DefeatPrevented,
             Unit.Id,
             Timing,
-            detail: abilityId));
+            detail: prevention.AbilityId));
+        if (prevention.MpCost > 0)
+        {
+            BattleResourceResolver.SpendMp(State, Unit, prevention.MpCost, Timing, prevention.AbilityId);
+        }
+
+        if (prevention.HpRecovery > 0)
+        {
+            RestoreHpCore(Unit, Unit, prevention.HpRecovery, prevention.AbilityId);
+        }
+
+        if (prevention.MpRecovery > 0)
+        {
+            RecoverMpCore(Unit, Unit, prevention.MpRecovery, prevention.AbilityId);
+        }
+
+        if (prevention.Rage is { } rage)
+        {
+            BattleResourceResolver.SetRage(State, Unit, rage, Timing, prevention.AbilityId);
+        }
+
+        Unit.RecordAbilityUsage(prevention.AbilityId);
+        if (!string.IsNullOrWhiteSpace(prevention.FloatText))
+        {
+            RequestFloatText(Unit, prevention.FloatText, BattleFloatTextStyle.Special);
+        }
+
+        if (!string.IsNullOrWhiteSpace(prevention.Speech))
+        {
+            RequestSpeech(Unit, prevention.Speech);
+        }
+
+        return true;
     }
 
     private InvalidOperationException MissingCapability(string capability) =>
         new($"Timing '{Timing}' did not provide required capability '{capability}'.");
 
-    public int Damage(BattleUnit target, int amount, string? detail = null)
+    private int RestoreHpCore(BattleUnit source, BattleUnit target, int amount, string? detail)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
-        return Engine.ApplyDirectDamage(
-            State,
-            Source ?? Unit,
-            target,
-            amount,
-            Timing,
-            detail);
-    }
-
-    public int RestoreHp(BattleUnit target, int amount, string? detail = null)
-    {
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentOutOfRangeException.ThrowIfNegative(amount);
-
-        var source = Source ?? Unit;
         var restored = Engine.RecoveryResolver.Apply(
             State,
             source,
@@ -338,7 +412,30 @@ public sealed class BattleHookContext :
         return restored;
     }
 
-    public int DamageMp(BattleUnit target, int amount, string? detail = null)
+    private int RecoverMpCore(BattleUnit source, BattleUnit target, int amount, string? detail)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+        var restored = Engine.RecoveryResolver.Apply(
+            State,
+            source,
+            target,
+            BattleRecoveryKind.Mp,
+            amount).ActualAmount;
+        if (restored > 0)
+        {
+            State.AddMessage(new BattleFact(
+                BattleFactKind.MpRecovered,
+                target.Id,
+                Timing,
+                detail: detail ?? restored.ToString()));
+        }
+
+        return restored;
+    }
+
+    private int DamageMpCore(BattleUnit target, int amount, string? detail)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
@@ -346,20 +443,41 @@ public sealed class BattleHookContext :
         return BattleResourceResolver.DamageMp(State, target, amount, Timing, detail);
     }
 
-    int IDamageApplicationRuntimeContext.ApplyDirectDamage(
-        BattleUnit target,
-        int amount,
-        string? detail) => Damage(target, amount, detail);
+    int IDamageApplicationEffectContext.ApplyHpRecovery(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.BeforeDamageApplied, "Damage-application recovery can only occur");
+        return RestoreHpCore(Source ?? Unit, target, amount, detail);
+    }
 
-    int IDamageApplicationRuntimeContext.ApplyHpRecovery(
-        BattleUnit target,
-        int amount,
-        string? detail) => RestoreHp(target, amount, detail);
+    int IDamageApplicationEffectContext.DamageMp(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.BeforeDamageApplied, "Damage-application MP damage can only occur");
+        return DamageMpCore(target, amount, detail);
+    }
 
-    int IActionStartEffectContext.ApplyHpRecovery(
-        BattleUnit target,
-        int amount,
-        string? detail) => RestoreHp(target, amount, detail);
+    int IActionStartEffectContext.ApplyHpRecovery(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.BeforeActionStart, "Action-start recovery can only occur");
+        return RestoreHpCore(Source ?? Unit, target, amount, detail);
+    }
+
+    int IActionStartEffectContext.DamageMp(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.BeforeActionStart, "Action-start MP damage can only occur");
+        return DamageMpCore(target, amount, detail);
+    }
+
+    int IHitConfirmedEffectContext.DamageMp(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.OnHitConfirmed, "Hit-confirmed MP damage can only occur");
+        return DamageMpCore(target, amount, detail);
+    }
+
+    int IHitConfirmedEffectContext.RecoverMp(BattleUnit target, int amount, string? detail)
+    {
+        EnsureTiming(HookTiming.OnHitConfirmed, "Hit-confirmed MP recovery can only occur");
+        return RecoverMpCore(Source ?? Unit, target, amount, detail);
+    }
 
     bool IHitConfirmedEffectContext.IsCellAvailable(GridPosition position, BattleUnit movingUnit)
     {
@@ -407,9 +525,6 @@ public sealed class BattleHookContext :
             Timing);
     }
 
-    int IDamageApplicationRuntimeContext.ApplyMpDamage(
-        BattleUnit target,
-        int amount,
-        string? detail) => DamageMp(target, amount, detail);
+
 
 }

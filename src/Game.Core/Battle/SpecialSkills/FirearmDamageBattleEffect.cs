@@ -18,7 +18,7 @@ public sealed class FirearmDamageBattleEffectHandler
             var randomDamage = fortuneDifference == 0
                 ? 0
                 : context.Random.Next(5 * fortuneDifference, 20 * fortuneDifference + 1);
-            context.ApplyDirectDamage(target, 200 + randomDamage, context.Skill.Id);
+            context.DealDamage(target, 200 + randomDamage);
         }
     }
 

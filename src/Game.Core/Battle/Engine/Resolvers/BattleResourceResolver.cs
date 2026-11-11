@@ -59,6 +59,17 @@ internal static class BattleResourceResolver
 
     public static void SetActionGauge(BattleUnit target, int value) => target.SetActionGauge(value);
 
+    /// <summary>支付内力代价（不是伤害），产出 MpDamaged 事实（detail 为 来源:实际量）。</summary>
+    public static int SpendMp(BattleState state, BattleUnit target, int value, HookTiming? timing, string detailSource)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        var before = target.Mp;
+        target.SpendMp(value);
+        var actual = before - target.Mp;
+        state.AddMessage(new BattleFact(BattleFactKind.MpDamaged, target.Id, timing, detail: $"{detailSource}:{actual}"));
+        return actual;
+    }
+
     public static int DamageMp(BattleState state, BattleUnit target, int value, HookTiming? timing = null, string? detail = null)
     {
         var actual = target.DamageMp(value);

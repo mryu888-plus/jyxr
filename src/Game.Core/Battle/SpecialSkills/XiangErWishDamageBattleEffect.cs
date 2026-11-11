@@ -13,7 +13,7 @@ public sealed class XiangErWishDamageBattleEffectHandler
         foreach (var target in context.Targets)
         {
             var damage = context.Random.Next(1000, maximumDamage + 1);
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
     }
 

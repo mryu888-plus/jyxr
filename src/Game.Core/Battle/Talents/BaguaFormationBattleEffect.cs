@@ -8,13 +8,13 @@ public sealed record BaguaFormationBattleEffectParameters(
     string? Speech = null);
 
 internal sealed class BaguaFormationBattleEffectHandler
-    : CustomBattleEffectHandler<BaguaFormationBattleEffectParameters, IDamageApplicationRuntimeContext>
+    : CustomBattleEffectHandler<BaguaFormationBattleEffectParameters, IDamageApplicationEffectContext>
 {
     public override IReadOnlySet<HookTiming> SupportedTimings { get; } =
         new HashSet<HookTiming> { HookTiming.BeforeDamageApplied };
 
     public override void Execute(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         BaguaFormationBattleEffectParameters parameters)
     {
         if (context.DamageAmount <= 0)
@@ -36,7 +36,8 @@ internal sealed class BaguaFormationBattleEffectHandler
         var transferredDamage = (int)(context.DamageAmount * parameters.TransferFactor);
         var retainedDamage = (int)(context.DamageAmount * (1d - parameters.TransferFactor));
 
-        context.ApplyDirectDamage(defender, transferredDamage, "八卦阵");
+        // 转移部分是同一次攻击的另一个承伤分量，保留攻击者、技能与归因。
+        context.TransferDamage(defender, transferredDamage, "八卦阵");
         context.CapDamage(retainedDamage);
         if (!string.IsNullOrWhiteSpace(parameters.Speech))
         {

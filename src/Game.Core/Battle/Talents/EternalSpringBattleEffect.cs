@@ -10,13 +10,13 @@ public sealed record EternalSpringBattleEffectParameters(
     string FloatText);
 
 internal sealed class EternalSpringBattleEffectHandler
-    : CustomBattleEffectHandler<EternalSpringBattleEffectParameters, IDamageApplicationRuntimeContext>
+    : CustomBattleEffectHandler<EternalSpringBattleEffectParameters, IDamageApplicationEffectContext>
 {
     public override IReadOnlySet<HookTiming> SupportedTimings { get; } =
         new HashSet<HookTiming> { HookTiming.BeforeDamageApplied };
 
     public override void Execute(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         EternalSpringBattleEffectParameters parameters)
     {
         if (context.DamageAmount <= 0)

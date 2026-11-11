@@ -14,7 +14,7 @@ public sealed record CarefulDefenseBattleEffectParameters(
     BattleSpeechDefinition SmartSpeech);
 
 internal sealed class CarefulDefenseBattleEffectHandler
-    : CustomBattleEffectHandler<CarefulDefenseBattleEffectParameters, IDamageApplicationRuntimeContext>
+    : CustomBattleEffectHandler<CarefulDefenseBattleEffectParameters, IDamageApplicationEffectContext>
 {
     public override IReadOnlySet<HookTiming> SupportedTimings { get; } =
         new HashSet<HookTiming> { HookTiming.BeforeDamageApplied };
@@ -29,10 +29,11 @@ internal sealed class CarefulDefenseBattleEffectHandler
     }
 
     public override void Execute(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         CarefulDefenseBattleEffectParameters parameters)
     {
-        if (context.DamageAmount <= 0)
+        // legacy 的精打细算/精明写在普通伤害公式里，只对普通攻防伤害封顶。
+        if (context.DamageAmount <= 0 || context.DamageMitigation != BattleDamageMitigation.Normal)
         {
             return;
         }
@@ -66,14 +67,14 @@ internal sealed class CarefulDefenseBattleEffectHandler
         context.CapDamage(parameters.SmartDamageCap);
         if (overflow > 0)
         {
-            context.ApplyMpDamage(context.Unit, overflow, parameters.SmartTalentId);
+            context.DamageMp(context.Unit, overflow, parameters.SmartTalentId);
         }
 
         TryRequestSpeech(context, parameters.SmartSpeech);
     }
 
     private static void ApplyCareful(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         CarefulDefenseBattleEffectParameters parameters)
     {
         context.CapDamage(parameters.CarefulDamageCap);
@@ -81,7 +82,7 @@ internal sealed class CarefulDefenseBattleEffectHandler
     }
 
     private static void TryRequestSpeech(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         BattleSpeechDefinition speech)
     {
         var selectedSpeech = BattleSpeechRuntime.TryPickLine(speech, context.Random);

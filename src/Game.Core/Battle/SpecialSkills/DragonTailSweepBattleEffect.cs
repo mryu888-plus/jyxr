@@ -37,7 +37,7 @@ public sealed class DragonTailSweepBattleEffectHandler
 
             var distanceFactor = movedCells + 1;
             var damage = context.Random.Next(distanceFactor * 100, distanceFactor * 500 + 1);
-            context.ApplyDirectDamage(target, damage, context.Skill.Id);
+            context.DealDamage(target, damage);
         }
     }
 

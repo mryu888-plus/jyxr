@@ -36,6 +36,18 @@ public sealed class BattleDamageCalculationContext
 
     public double AdditionalLifestealRate { get; set; }
 
+    /// <summary>
+    /// 不受落血前封顶影响的追加伤害（攀云乘龙、无形剑气，legacy 在封顶之后加入）。
+    /// 不进入普通伤害公式；在 BeforeDamageApplied 改写之后加到主承伤者，伤害被取消时一并作废。
+    /// </summary>
+    public int UncappedBonusDamage { get; private set; }
+
+    public void AddUncappedBonusDamage(int amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        UncappedBonusDamage = checked(UncappedBonusDamage + amount);
+    }
+
     public void AddModifier(BattleDamageContextField field, ModifierOp op, double value)
     {
         var bucket = _modifiers.TryGetValue(field, out var existing)

@@ -43,9 +43,6 @@ internal sealed class FormlessSwordQiBattleEffectHandler
         var factor = parameters.MinimumFactor +
             (parameters.MaximumFactor - parameters.MinimumFactor) * context.Random.NextDouble();
         var additionalDamage = (int)Math.Floor(mpDifference * factor);
-        context.DamageCalculation.AddModifier(
-            BattleDamageContextField.FinalDamage,
-            ModifierOp.PostAdd,
-            additionalDamage);
+        context.DamageCalculation.AddUncappedBonusDamage(Math.Max(0, additionalDamage));
     }
 }

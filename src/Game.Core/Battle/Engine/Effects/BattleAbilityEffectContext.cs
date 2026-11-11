@@ -34,6 +34,25 @@ internal sealed class BattleAbilityEffectContext(
     public int ApplyHpRecovery(BattleUnit target, int amount) =>
         engine.ApplyDirectHpRecovery(state, Source, target, amount);
 
-    public int ApplyDirectDamage(BattleUnit target, int amount, string? detail = null) =>
-        engine.ApplyDirectDamage(state, Source, target, amount, detail: detail);
+    public int DealDamage(
+        BattleUnit target,
+        int amount,
+        BattleDamageMitigation mitigation = BattleDamageMitigation.IgnoreDefence,
+        BattleDamageHitMode hitMode = BattleDamageHitMode.Judged) =>
+        engine.ResolveDamage(state, BattleDamageDescriptor.ForAbility(
+            Source,
+            target,
+            amount,
+            Skill,
+            hitMode,
+            mitigation) with
+        {
+            Detail = Skill.Id,
+        }).ActualAmount;
+
+    public int PayHpCost(int amount) =>
+        engine.ResolveDamage(state, BattleDamageDescriptor.ForSelfCost(Source, amount, Skill) with
+        {
+            Detail = Skill.Id,
+        }).ActualAmount;
 }

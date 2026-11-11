@@ -18,31 +18,16 @@ public sealed class SurviveAtOneHpBattleEffectHandler
         IDefeatPreventionEffectContext context,
         SurviveAtOneHpBattleEffectParameters parameters)
     {
-        if (!Probability.RollChance(context.Random, parameters.Chance))
+        if (context.IsDefeatPrevented || !Probability.RollChance(context.Random, parameters.Chance))
         {
             return;
         }
 
-        context.Unit.RestoreHp(1);
-        Complete(context, parameters.AbilityId, parameters.FloatText, parameters.Speech);
-    }
-
-    internal static void Complete(
-        IDefeatPreventionEffectContext context,
-        string abilityId,
-        string? floatText,
-        string? speech)
-    {
-        context.PreventDefeat(abilityId);
-        if (!string.IsNullOrWhiteSpace(floatText))
+        context.TryPreventDefeat(new BattleDefeatPrevention(parameters.AbilityId)
         {
-            context.RequestFloatText(context.Unit, floatText, BattleFloatTextStyle.Special);
-        }
-
-        if (!string.IsNullOrWhiteSpace(speech))
-        {
-            context.RequestSpeech(context.Unit, speech);
-        }
+            FloatText = parameters.FloatText,
+            Speech = parameters.Speech,
+        });
     }
 }
 
@@ -64,18 +49,19 @@ public sealed class QiShieldDefeatPreventionBattleEffectHandler
         QiShieldDefeatPreventionBattleEffectParameters parameters)
     {
         var mpCost = checked(context.IncomingDamageAmount * parameters.MpCostPerDamage);
-        if (context.Unit.Mp < mpCost || !Probability.RollChance(context.Random, parameters.Chance))
+        if (context.IsDefeatPrevented ||
+            context.Unit.Mp < mpCost ||
+            !Probability.RollChance(context.Random, parameters.Chance))
         {
             return;
         }
 
-        context.Unit.RestoreHp(1);
-        context.Unit.SpendMp(mpCost);
-        SurviveAtOneHpBattleEffectHandler.Complete(
-            context,
-            parameters.AbilityId,
-            parameters.FloatText,
-            parameters.Speech);
+        context.TryPreventDefeat(new BattleDefeatPrevention(parameters.AbilityId)
+        {
+            MpCost = mpCost,
+            FloatText = parameters.FloatText,
+            Speech = parameters.Speech,
+        });
     }
 }
 
@@ -96,21 +82,26 @@ public sealed class EndlessFightingSpiritBattleEffectHandler
         IDefeatPreventionEffectContext context,
         EndlessFightingSpiritBattleEffectParameters parameters)
     {
-        var guaranteed = context.Unit.GetAbilityUsageCount(parameters.AbilityId) == 0 &&
+        if (context.IsDefeatPrevented)
+        {
+            return;
+        }
+
+        var guaranteed = context.GetAbilityUsageCount(parameters.AbilityId) == 0 &&
             context.Unit.Character.HasEffectiveTalent(parameters.GuaranteedFirstTalentId);
         if (!guaranteed && !Probability.RollChance(context.Random, parameters.Chance))
         {
             return;
         }
 
-        context.Unit.RestoreHp(context.Unit.MaxHp);
-        context.Unit.RestoreMp(context.Unit.MaxMp);
-        context.Unit.SetRage(BattleUnit.MaxRage);
-        context.Unit.RecordAbilityUsage(parameters.AbilityId);
-        SurviveAtOneHpBattleEffectHandler.Complete(
-            context,
-            parameters.AbilityId,
-            parameters.FloatText,
-            parameters.Speech);
+        context.TryPreventDefeat(new BattleDefeatPrevention(parameters.AbilityId)
+        {
+            // 以 1 HP 存活后恢复到满。
+            HpRecovery = Math.Max(0, context.Unit.MaxHp - 1),
+            MpRecovery = Math.Max(0, context.Unit.MaxMp - context.Unit.Mp),
+            Rage = BattleUnit.MaxRage,
+            FloatText = parameters.FloatText,
+            Speech = parameters.Speech,
+        });
     }
 }

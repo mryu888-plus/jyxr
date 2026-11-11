@@ -45,10 +45,7 @@ internal sealed class CloudClimbingDragonBattleEffectHandler
         var minimum = (int)Math.Floor(shenfa * parameters.MinimumShenfaFactor);
         var maximum = Math.Max(minimum, (int)Math.Floor(shenfa * parameters.MaximumShenfaFactor));
         var additionalDamage = context.Random.Next(minimum, maximum + 1);
-        context.DamageCalculation.AddModifier(
-            BattleDamageContextField.FinalDamage,
-            ModifierOp.PostAdd,
-            additionalDamage);
+        context.DamageCalculation.AddUncappedBonusDamage(Math.Max(0, additionalDamage));
 
         var speech = BattleSpeechRuntime.TryPickLine(
             new BattleSpeechDefinition

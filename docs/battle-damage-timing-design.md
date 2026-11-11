@@ -1,7 +1,6 @@
 # 战斗伤害 Timing 设计
 
-> 本文说明伤害阶段的职责划分；具体入口存在差异，不能将下述推荐管线视为所有伤害的统一实现。
-> 普通技能、直接伤害和毒伤的当前行为见下节；阶段操作受能力型 Context 限制。
+> 本文说明伤害阶段的职责划分，以及所有伤害共用的公共结算管线。阶段操作受能力型 Context 限制。
 > Effect、Context 和消息流总览见 `battle-runtime-architecture.md` 与
 > `battle-effect-phase-hook-design.md`。
 
@@ -15,11 +14,58 @@
 - 明确普通伤害与真实伤害分别走哪些 timing
 - 避免把“命中前拦截”“防御修正”“扣血后触发”混在同一个 timing
 
-## 当前实现与设计边界
+## 伤害描述与公共结算管线
 
-普通技能执行命中与伤害步骤。`ApplyDirectDamage` 直接调用公共伤害 resolver，跳过命中、普通攻防计算与 `BeforeDamageApplied`，保留实际扣血后的响应。毒伤额外关闭承伤后响应，并限制为至少保留 1 HP。
+所有扣血都先生成不可变的 `BattleDamageDescriptor`，再交给 `BattleDamageResolver` 的唯一入口
+`BattleEngine.ResolveDamage(...)`。不再有 `ApplyDirectDamage`、毒伤专用入口或 `runBefore/runAfter` 开关。
+描述用强类型字段表达结算不变量，管线只解释字段，不按技能类别分支；内容 Tag 不承载这些不变量。
 
-公共承伤后路径已实现 `OnDamageTaken`、受击回怒、`BeforeDefeated`、`OnDefeated` 和攻击方的 `OnDamageDealt`；关闭该路径的伤害不会执行这些阶段。下文的真实伤害推荐流程用于表达设计方向，不表示每项已按该分类接入。统一伤害来源与阶段策略的待办见 [TODO](../TODO.md) 和 [战斗后续议题](battle-runtime-refactoring-backlog.md)。
+| 字段 | 取值 | 作用 |
+| --- | --- | --- |
+| `HitMode` | `Resolved` / `Judged` / `Guaranteed` | 调用方已判定命中；结算前按技能语义判定（闪避、目标侧反制、来源侧破闪避）；必中 |
+| `Mitigation` | `Normal` / `IgnoreDefence` / `True` | 普通攻防公式；独立公式但仍是可被反制的攻击；真实伤害（不允许落血前改写） |
+| `Origin` | `Skill` / `ExtraStrike` / `Ability` / `Reflection` / `Share` / `Periodic` / `SelfCost` | 归因 |
+| `Reactions` | `PreApplication` / `TakenResponses` / `TakenRage` / `DealtResponses` / `Lifesteal` | 允许经过的可选阶段 |
+| `UncappedBonusAmount` | ≥ 0 | 不受落血前封顶、随取消作废的追加伤害（见下文） |
+| `MinimumRemainingHp` | ≥ 0 | 承伤后至少保留的 HP |
+
+管线顺序：
+
+1. 命中：`Judged` 时调用与普通技能相同的命中判定；被判定 MISS 时只记录 0 伤害事实。
+2. 落血前改写（`PreApplication`）：目标的 `BeforeDamageApplied`。可封顶、取消、改写落点、`TransferDamage`
+   转移为同一次攻击的其他承伤分量、`ReflectDamage` 反弹、`ShareDamage` 分摊。
+3. 未被取消时，把 `UncappedBonusAmount` 加到主承伤者。
+4. 逐个承伤分量扣血（转移出去的分量先结算，与 legacy 八卦阵一致），各自记录 `Damaged` 事实，并按开关触发
+   承伤者的 `OnDamageTaken`、受击回怒；HP 归零时**总会**经过 `BeforeDefeated` / `OnDefeated`，不受开关影响。
+5. 来源侧（`DealtResponses`）：按全部承伤分量的实际 HP 损失汇总，`OnDamageDealt` 与吸血整次只执行一次。
+
+各来源的阶段策略由描述工厂集中定义：
+
+| 来源 | 命中 | 减伤 | 落血前改写 | 承伤后响应 | 受击回怒 | OnDamageDealt | 吸血 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `ForSkill` 普通技能 | 已判定 | 普通 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `ForExtraStrike` 追加攻击 | 沿用 | 普通 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `ForAbility` 特殊技能伤害 | 判定（可改必中） | 无视护甲（可改真实） | ✓（真实伤害时 ✗） | ✓ | ✓ | ✓ | ✗ |
+| `ForReflection` 反弹 | 必中 | 真实 | ✗ | ✓ | ✗ | ✗ | ✗ |
+| `ForShare` 分摊 | 必中 | 真实 | ✗ | ✓ | ✓ | ✓ | ✗ |
+| `ForPeriodic` 中毒等 | 必中 | 真实 | ✗ | ✗ | ✗ | ✗ | ✗（至少留 1 HP） |
+| `ForSelfCost` 施法代价 | 必中 | 真实 | ✗ | ✓ | ✗ | ✗ | ✗ |
+
+说明：
+
+- 特殊技能（火枪、过肩摔、同归剑法等）在 legacy `AttackLogic.Attack()` 中同样经过 MISS 判定和斗转星移、不老长春、
+  真武挡刀、五行阵、八卦阵等目标侧反制，只跳过写在普通伤害公式里的乾坤大挪移、宝甲、精打细算和精明。因此能力伤害默认
+  `Judged + IgnoreDefence`；`careful_defense`（精打细算/精明）只对 `Normal` 减伤的伤害封顶。
+- 反弹以反弹者为来源，不能再被改写（阻止反弹链），被反弹者不因此受击回怒，反弹者也不触发 `OnDamageDealt`。
+- 分摊（五行阵）仍是归因于原攻击者、不携带技能的独立伤害；转移（八卦阵）是同一次攻击的承伤分量，保留原攻击者、技能与归因。
+- 施法代价（同归剑法、天地同寿的自伤）不可防御，但仍是真实 HP 损失：触发施法者自己的 `OnDamageTaken` 与战败阶段。
+
+### 追加伤害（攀云乘龙、无形剑气）
+
+legacy 把攀云乘龙、无形剑气的追加伤害加在精打细算/精明封顶之后。处理器通过
+`BattleDamageCalculationContext.AddUncappedBonusDamage(...)` 记录，不进入普通伤害公式，`BeforeDamageApplied`
+看到的伤害值不含它；落血前改写结束后，若伤害未被取消（斗转星移、不老长春等），再加到最终的主承伤者。
+它不参与八卦阵的转移比例（legacy 转移的是含追加伤害的总值，这是有意保留的简化）。
 
 ## 核心原则
 
@@ -215,44 +261,12 @@
 
 ## 普通伤害与真实伤害
 
-### 普通伤害
+普通伤害（外功、招式、追加攻击）：`BeforeHitResolved` → `BeforeDamageCalculation` → `BeforeDamageApplied`
+→ 扣血 → `OnDamageTaken` / 战败阶段 → 攻击方 `OnDamageDealt` 与吸血。
 
-普通伤害的推荐管线：
-
-1. `BeforeHitResolved`
-2. `BeforeDamageCalculation`
-3. `BeforeDamageApplied`
-4. 扣血
-5. `OnDamageTaken`
-
-适用对象：
-
-- 外功
-- 招式
-- 大部分依赖攻击/防御/暴击公式的伤害
-
-### 真实伤害
-
-真实伤害的推荐管线：
-
-1. `BeforeHitResolved`
-2. 跳过 `BeforeDamageCalculation`
-3. 跳过 `BeforeDamageApplied`
-4. 直接扣血
-5. `OnDamageTaken`
-
-适用对象：
-
-- 火枪
-- 襄儿的心愿
-- 同归剑法
-- 其他明确声明为真实伤害的技能效果
-
-设计含义：
-
-- 真实伤害绕过防御体系
-- 真实伤害仍然算“真正受伤”
-- 因此真实伤害会触发扣血后的受伤逻辑
+真实伤害（`Mitigation = True`）跳过普通公式和全部落血前改写，直接扣血，仍触发描述允许的承伤后响应和战败阶段。
+独立公式但仍可被反制的能力伤害使用 `IgnoreDefence`，与真实伤害是两种不同语义，不再把“独立公式”与
+“必中 / 不可反弹 / 不可转移 / 不可吸收”绑定。
 
 ## 效果归类规则
 
@@ -303,10 +317,8 @@
 
 本文不解决以下问题：
 
-- 毒伤、灼烧、自残是否复用同一套 timing
 - 治疗是否需要独立 `BeforeHealApplied / OnHealed`
-- 死亡阶段如何覆盖不同伤害来源（当前已有 `BeforeDefeated` 和 `OnDefeated`）
-- 多段伤害与一次技能多目标命中的事件聚合
+- 一次技能多目标命中、多段追加攻击之间的事件聚合（同一次伤害的多个承伤分量已在管线内聚合）
 
 这些问题后续再拆文档。
 
@@ -314,5 +326,5 @@
 
 - 运行时必须保持 `BeforeDamageCalculation -> BeforeDamageApplied -> TakeDamage -> OnDamageTaken` 的顺序
 - 真武七截阵的挡刀属于 `BeforeDamageApplied`；乾坤大挪移和宝甲继续使用 `BeforeDamageCalculation + final_damage`
-- 当前真实伤害 effect 后续应明确走“命中判定 -> 直接扣血 -> 扣血后触发”的窄管线
+- 新的伤害来源只新增描述工厂（或选择已有工厂的参数），不新增结算入口
 - `BeforeDamageApplied` 只保留真正依赖“本次伤害值”的防御与反制效果，不要再次混入闪避或普通攻防修正

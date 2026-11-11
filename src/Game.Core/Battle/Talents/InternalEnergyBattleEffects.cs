@@ -10,7 +10,7 @@ public sealed record InternalEnergyAttackBattleEffectParameters(
     bool Transfer = true);
 
 internal sealed class InternalEnergyAttackBattleEffectHandler
-    : CustomBattleEffectHandler<InternalEnergyAttackBattleEffectParameters, IBattleEffectContext>
+    : CustomBattleEffectHandler<InternalEnergyAttackBattleEffectParameters, IHitConfirmedEffectContext>
 {
     private const double ResistanceMinimum = 0.25d;
     private const double ResistanceMaximum = 2d;
@@ -29,12 +29,10 @@ internal sealed class InternalEnergyAttackBattleEffectHandler
     }
 
     public override void Execute(
-        IBattleEffectContext context,
+        IHitConfirmedEffectContext context,
         InternalEnergyAttackBattleEffectParameters parameters)
     {
-        if (context is not BattleHookContext hookContext ||
-            context.Source is null ||
-            context.Target is null)
+        if (context.Source is null || context.Target is null)
         {
             return;
         }
@@ -53,22 +51,10 @@ internal sealed class InternalEnergyAttackBattleEffectHandler
             parameters.Power *
             resistance *
             randomFactor));
-        var actual = hookContext.DamageMp(context.Target, requested);
-        if (!parameters.Transfer || actual == 0)
+        var actual = context.DamageMp(context.Target, requested);
+        if (parameters.Transfer && actual > 0)
         {
-            return;
-        }
-
-        var restored = hookContext.Engine.RecoveryResolver
-            .Apply(context.State, context.Source, context.Source, BattleRecoveryKind.Mp, actual)
-            .ActualAmount;
-        if (restored > 0)
-        {
-            context.State.AddMessage(new BattleFact(
-                BattleFactKind.MpRecovered,
-                context.Source.Id,
-                context.Timing,
-                detail: restored.ToString()));
+            context.RecoverMp(context.Source, actual);
         }
     }
 }
@@ -88,16 +74,11 @@ internal sealed class GrievingBreezeBattleEffectHandler
         IActionStartEffectContext context,
         GrievingBreezeBattleEffectParameters parameters)
     {
-        if (context is not BattleHookContext hookContext)
-        {
-            return;
-        }
-
         foreach (var target in context.State.GetLivingUnits()
                      .Where(target => target.Team != context.Unit.Team)
                      .Where(target => target.Position.ManhattanDistanceTo(context.Unit.Position) <= Radius))
         {
-            hookContext.DamageMp(target, (int)Math.Ceiling(target.Mp * CurrentMpDamageRatio));
+            context.DamageMp(target, (int)Math.Ceiling(target.Mp * CurrentMpDamageRatio));
         }
     }
 }

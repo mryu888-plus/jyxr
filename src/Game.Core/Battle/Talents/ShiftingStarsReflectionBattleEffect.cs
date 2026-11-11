@@ -11,13 +11,13 @@ public sealed record ShiftingStarsReflectionBattleEffectParameters(
     string Speech);
 
 internal sealed class ShiftingStarsReflectionBattleEffectHandler
-    : CustomBattleEffectHandler<ShiftingStarsReflectionBattleEffectParameters, IDamageApplicationRuntimeContext>
+    : CustomBattleEffectHandler<ShiftingStarsReflectionBattleEffectParameters, IDamageApplicationEffectContext>
 {
     public override IReadOnlySet<HookTiming> SupportedTimings { get; } =
         new HashSet<HookTiming> { HookTiming.BeforeDamageApplied };
 
     public override void Execute(
-        IDamageApplicationRuntimeContext context,
+        IDamageApplicationEffectContext context,
         ShiftingStarsReflectionBattleEffectParameters parameters)
     {
         var source = context.Source;
@@ -38,7 +38,7 @@ internal sealed class ShiftingStarsReflectionBattleEffectHandler
         var reflectedDamage = (int)(context.DamageAmount * parameters.DamageFactor);
         if (reflectedDamage > 0)
         {
-            context.ApplyDirectDamage(source, reflectedDamage, "斗转星移");
+            context.ReflectDamage(source, reflectedDamage, "斗转星移");
         }
 
         context.RequestFloatText(context.Unit, parameters.FloatText, BattleFloatTextStyle.Special);

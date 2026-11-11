@@ -13,7 +13,7 @@ public sealed class SeverInTwoBattleEffectHandler
         {
             if (context.Random.NextDouble() < 0.5d)
             {
-                context.ApplyDirectDamage(target, target.Hp / 2, context.Skill.Id);
+                context.DealDamage(target, target.Hp / 2);
             }
         }
     }

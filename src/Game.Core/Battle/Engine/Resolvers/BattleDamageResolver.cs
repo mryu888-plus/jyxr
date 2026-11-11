@@ -4,166 +4,215 @@ using Game.Core.Model.Skills;
 
 namespace Game.Core.Battle;
 
-internal sealed record BattleDamageApplicationResult(
-    BattleUnit Target,
-    int ActualAmount,
-    bool SuppressHitEffects);
+/// <summary>同一次伤害的一个承伤分量（主承伤者或经 TransferDamage 转移出去的部分）。</summary>
+internal sealed record BattleDamageComponent(BattleUnit Target, int Amount, string? Detail, bool IsTransfer);
 
-internal sealed class BattleDamageApplicationContext(
-    BattleUnit source,
-    BattleUnit target,
-    SkillInstance? skill,
-    int proposedAmount,
-    bool isCritical)
-{
-    public BattleUnit Source { get; } = source;
-
-    public BattleUnit Target { get; set; } = target;
-
-    public SkillInstance? Skill { get; } = skill;
-
-    public int ProposedAmount { get; set; } = proposedAmount;
-
-    public bool IsCritical { get; } = isCritical;
-
-    public bool SuppressHitEffects { get; set; }
-}
-
-internal sealed record BattleDamageTakenContext(
-    BattleUnit Source,
-    BattleUnit Target,
-    SkillInstance? Skill,
-    int IncomingAmount,
-    int ActualAmount,
-    bool IsCritical);
-
+/// <summary>
+/// 公共伤害结算管线。所有扣血都由 <see cref="BattleDamageDescriptor"/> 描述并经过这里，阶段为：
+/// 命中（按描述）→ 落血前改写（BeforeDamageApplied，可选）→ 各承伤分量扣血
+/// → 每个分量的承伤后响应（OnDamageTaken、受击回怒，可选）与战败阶段（必经）
+/// → 来源侧 OnDamageDealt 与吸血（可选，按全部分量实际 HP 损失汇总后只执行一次）。
+/// </summary>
 internal sealed class BattleDamageResolver(BattleEngine engine)
 {
-    public BattleDamageApplicationResult Apply(
-        BattleState state,
-        BattleUnit source,
-        BattleUnit target,
-        int amount,
-        SkillInstance? skill = null,
-        bool isCritical = false,
-        bool runBeforeDamageApplied = true,
-        bool runAfterDamageApplied = true,
-        double lifestealRateBonus = 0d,
-        HookTiming? eventTiming = null,
-        string? detail = null)
+    public BattleDamageResolution Resolve(BattleState state, BattleDamageDescriptor damage)
     {
         ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        ArgumentNullException.ThrowIfNull(damage);
 
-        var applicationContext = new BattleDamageApplicationContext(
-            source,
-            target,
-            skill,
-            amount,
-            isCritical);
-        if (runBeforeDamageApplied)
+        if (damage.HitMode == BattleDamageHitMode.Judged)
+        {
+            var hit = engine.JudgeHit(state, damage.Source, damage.Target, damage.Skill!);
+            if (hit.IsCancelled)
+            {
+                BattleEngine.AddMessage(state, new BattleFact(
+                    BattleFactKind.Damaged,
+                    damage.Target.Id,
+                    damage.EventTiming,
+                    detail: damage.Source.Id,
+                    damage: new BattleDamageEvent(0, SourceUnitId: damage.Source.Id)));
+                return new BattleDamageResolution(damage.Target, 0, 0, IsHitCancelled: true,
+                    IsDamageCancelled: false, hit.SuppressHitEffects);
+            }
+        }
+
+        var primaryTarget = damage.Target;
+        var primaryAmount = damage.Amount;
+        var suppressHitEffects = false;
+        var damageCancelled = false;
+        IReadOnlyList<BattleDamageComponent> transfers = [];
+        if (damage.Allows(BattleDamageReactions.PreApplication))
         {
             var application = engine.TriggerHooks(
                 state,
                 HookTiming.BeforeDamageApplied,
-                target,
+                damage.Target,
                 context =>
                 {
-                    context.Source = source;
-                    context.Target = target;
-                    context.Skill = skill;
-                    context.DamageAmount = amount;
-                    context.IsCritical = isCritical;
+                    context.Source = damage.Source;
+                    context.Target = damage.Target;
+                    context.Skill = damage.Skill;
+                    context.DamageAmount = damage.Amount;
+                    context.IsCritical = damage.IsCritical;
+                    context.DamageBeingApplied = damage;
                 });
-            applicationContext.ProposedAmount = Math.Max(0, application.DamageAmount ?? amount);
-            applicationContext.Target = application.Target ?? target;
-            applicationContext.SuppressHitEffects = application.SuppressHitEffects;
+            primaryAmount = Math.Max(0, application.DamageAmount ?? damage.Amount);
+            primaryTarget = application.Target ?? damage.Target;
+            suppressHitEffects = application.SuppressHitEffects;
+            damageCancelled = application.IsDamageCancelled;
+            transfers = application.PendingDamageTransfers;
         }
 
-        var actualAmount = applicationContext.Target.TakeDamage(applicationContext.ProposedAmount);
+        if (!damageCancelled)
+        {
+            primaryAmount = checked(primaryAmount + damage.UncappedBonusAmount);
+        }
+
+        // legacy 八卦阵先扣替挡者，再扣原目标；分量按此顺序结算。
+        var components = transfers
+            .Append(new BattleDamageComponent(primaryTarget, primaryAmount, damage.Detail, IsTransfer: false))
+            .ToList();
+        var primaryActual = 0;
+        var totalActual = 0;
+        foreach (var component in components)
+        {
+            var actual = ApplyComponent(state, damage, component);
+            totalActual = checked(totalActual + actual);
+            if (!component.IsTransfer)
+            {
+                primaryActual = actual;
+            }
+        }
+
+        if (totalActual > 0)
+        {
+            ApplyDealtResponses(state, damage, primaryTarget, totalActual);
+        }
+
+        return new BattleDamageResolution(
+            primaryTarget,
+            primaryActual,
+            totalActual,
+            IsHitCancelled: false,
+            damageCancelled,
+            suppressHitEffects);
+    }
+
+    private int ApplyComponent(BattleState state, BattleDamageDescriptor damage, BattleDamageComponent component)
+    {
+        var target = component.Target;
+        var amount = component.Amount;
+        if (damage.MinimumRemainingHp > 0)
+        {
+            amount = Math.Min(amount, Math.Max(0, target.Hp - damage.MinimumRemainingHp));
+        }
+
+        var actualAmount = target.TakeDamage(amount);
         BattleEngine.AddMessage(state, new BattleFact(
             BattleFactKind.Damaged,
-            applicationContext.Target.Id,
-            eventTiming,
-            detail: detail ?? source.Id,
-            damage: new BattleDamageEvent(actualAmount, isCritical, source.Id)));
-
-        if (actualAmount > 0 && runAfterDamageApplied)
+            target.Id,
+            damage.EventTiming,
+            detail: component.Detail ?? damage.Source.Id,
+            damage: new BattleDamageEvent(actualAmount, damage.IsCritical, damage.Source.Id)));
+        if (actualAmount <= 0)
         {
-            var takenContext = new BattleDamageTakenContext(
-                source,
-                applicationContext.Target,
-                skill,
-                applicationContext.ProposedAmount,
-                actualAmount,
-                isCritical);
-            engine.TriggerHooks(state, HookTiming.OnDamageTaken, takenContext.Target, context =>
-            {
-                context.Source = takenContext.Source;
-                context.Target = takenContext.Target;
-                context.Skill = takenContext.Skill;
-                context.DamageAmount = takenContext.ActualAmount;
-                context.IsCritical = takenContext.IsCritical;
-            });
-
-            TryGainRageFromTakingDamage(state, takenContext.Source, takenContext.Target);
-
-            if (!takenContext.Target.IsAlive)
-            {
-                engine.TriggerHooks(state, HookTiming.BeforeDefeated, takenContext.Target, context =>
-                {
-                    context.Source = takenContext.Source;
-                    context.Target = takenContext.Target;
-                    context.Skill = takenContext.Skill;
-                    context.IncomingDamageAmount = takenContext.IncomingAmount;
-                    context.DamageAmount = takenContext.ActualAmount;
-                    context.IsCritical = takenContext.IsCritical;
-                });
-
-                if (!takenContext.Target.IsAlive)
-                {
-                    state.AddMessage(new BattleFact(
-                        BattleFactKind.UnitDefeated,
-                        takenContext.Target.Id,
-                        HookTiming.OnDefeated,
-                        takenContext.Source.Id));
-                    engine.TriggerHooks(state, HookTiming.OnDefeated, takenContext.Target, context =>
-                    {
-                        context.Source = takenContext.Source;
-                        context.Target = takenContext.Target;
-                        context.Skill = takenContext.Skill;
-                        context.IncomingDamageAmount = takenContext.IncomingAmount;
-                        context.DamageAmount = takenContext.ActualAmount;
-                        context.IsCritical = takenContext.IsCritical;
-                    });
-                    state.ScopedEffects.NotifyUnitDefeated(state, takenContext.Target);
-                }
-            }
-
-            var lifestealRate = Math.Max(
-                0d,
-                takenContext.Source.GetStat(StatType.Lifesteal) +
-                (takenContext.Skill?.IntrinsicLifestealRate ?? 0d) +
-                lifestealRateBonus);
-            var dealt = engine.TriggerHooks(state, HookTiming.OnDamageDealt, takenContext.Source, context =>
-            {
-                context.Source = takenContext.Source;
-                context.Target = takenContext.Target;
-                context.Skill = takenContext.Skill;
-                context.DamageAmount = takenContext.ActualAmount;
-                context.IsCritical = takenContext.IsCritical;
-                context.LifestealRate = lifestealRate;
-            });
-
-            ApplyLifesteal(state, takenContext, dealt.LifestealRate ?? lifestealRate);
+            return 0;
         }
 
-        return new BattleDamageApplicationResult(
-            applicationContext.Target,
-            actualAmount,
-            applicationContext.SuppressHitEffects);
+        if (damage.Allows(BattleDamageReactions.TakenResponses))
+        {
+            engine.TriggerHooks(state, HookTiming.OnDamageTaken, target, context =>
+            {
+                context.Source = damage.Source;
+                context.Target = target;
+                context.Skill = damage.Skill;
+                context.DamageAmount = actualAmount;
+                context.IsCritical = damage.IsCritical;
+            });
+        }
+
+        if (damage.Allows(BattleDamageReactions.TakenRage))
+        {
+            TryGainRageFromTakingDamage(state, damage.Source, target);
+        }
+
+        if (!target.IsAlive)
+        {
+            ResolveDefeat(state, damage, target, amount, actualAmount);
+        }
+
+        return actualAmount;
+    }
+
+    private void ResolveDefeat(
+        BattleState state,
+        BattleDamageDescriptor damage,
+        BattleUnit target,
+        int incomingAmount,
+        int actualAmount)
+    {
+        engine.TriggerHooks(state, HookTiming.BeforeDefeated, target, context =>
+        {
+            context.Source = damage.Source;
+            context.Target = target;
+            context.Skill = damage.Skill;
+            context.IncomingDamageAmount = incomingAmount;
+            context.DamageAmount = actualAmount;
+            context.IsCritical = damage.IsCritical;
+        });
+
+        if (target.IsAlive)
+        {
+            return;
+        }
+
+        state.AddMessage(new BattleFact(
+            BattleFactKind.UnitDefeated,
+            target.Id,
+            HookTiming.OnDefeated,
+            damage.Source.Id));
+        engine.TriggerHooks(state, HookTiming.OnDefeated, target, context =>
+        {
+            context.Source = damage.Source;
+            context.Target = target;
+            context.Skill = damage.Skill;
+            context.IncomingDamageAmount = incomingAmount;
+            context.DamageAmount = actualAmount;
+            context.IsCritical = damage.IsCritical;
+        });
+        state.ScopedEffects.NotifyUnitDefeated(state, target);
+    }
+
+    private void ApplyDealtResponses(
+        BattleState state,
+        BattleDamageDescriptor damage,
+        BattleUnit primaryTarget,
+        int totalActual)
+    {
+        if (!damage.Allows(BattleDamageReactions.DealtResponses))
+        {
+            return;
+        }
+
+        var lifestealRate = Math.Max(
+            0d,
+            damage.Source.GetStat(StatType.Lifesteal) +
+            (damage.Skill?.IntrinsicLifestealRate ?? 0d) +
+            damage.LifestealRateBonus);
+        var dealt = engine.TriggerHooks(state, HookTiming.OnDamageDealt, damage.Source, context =>
+        {
+            context.Source = damage.Source;
+            context.Target = primaryTarget;
+            context.Skill = damage.Skill;
+            context.DamageAmount = totalActual;
+            context.IsCritical = damage.IsCritical;
+            context.LifestealRate = lifestealRate;
+        });
+
+        if (damage.Allows(BattleDamageReactions.Lifesteal))
+        {
+            ApplyLifesteal(state, damage, primaryTarget, totalActual, dealt.LifestealRate ?? lifestealRate);
+        }
     }
 
     private void TryGainRageFromTakingDamage(BattleState state, BattleUnit source, BattleUnit target)
@@ -181,16 +230,21 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
             "damaged");
     }
 
-    private void ApplyLifesteal(BattleState state, BattleDamageTakenContext context, double rate)
+    private void ApplyLifesteal(
+        BattleState state,
+        BattleDamageDescriptor damage,
+        BattleUnit primaryTarget,
+        int totalActual,
+        double rate)
     {
-        if (context.Skill is null ||
-            !context.Source.IsAlive ||
-            context.Source.Team == context.Target.Team)
+        if (damage.Skill is null ||
+            !damage.Source.IsAlive ||
+            damage.Source.Team == primaryTarget.Team)
         {
             return;
         }
 
-        var requestedAmount = (int)Math.Floor(context.ActualAmount * Math.Max(0d, rate));
+        var requestedAmount = (int)Math.Floor(totalActual * Math.Max(0d, rate));
         if (requestedAmount <= 0)
         {
             return;
@@ -198,15 +252,15 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
 
         var actualAmount = engine.RecoveryResolver.Apply(
             state,
-            context.Source,
-            context.Source,
+            damage.Source,
+            damage.Source,
             BattleRecoveryKind.Hp,
             requestedAmount).ActualAmount;
         if (actualAmount > 0)
         {
             BattleEngine.AddMessage(state, new BattleFact(
                 BattleFactKind.Lifesteal,
-                context.Source.Id,
+                damage.Source.Id,
                 HookTiming.OnDamageDealt,
                 lifesteal: new BattleLifestealEvent(actualAmount)));
         }
