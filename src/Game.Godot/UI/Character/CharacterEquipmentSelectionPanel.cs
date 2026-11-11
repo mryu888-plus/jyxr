@@ -1,4 +1,6 @@
 using Game.Application;
+using Game.Application.Formatters;
+using Game.Presentation.Items;
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Godot;
@@ -99,9 +101,10 @@ public partial class CharacterEquipmentSelectionPanel : JyPanel
 	{
 		var character = Game.State.Party.GetMember(_characterId);
 		var candidate = Game.ItemUseService.AnalyzeTarget(entry, character);
+		var comparison = EquipmentComparisonPresenter.Compare(character, entry);
 		Control? detailPanel = null;
 		var action = new DetailPanelAction(
-			candidate.CanUse ? "装备" : "不可装备",
+			candidate.CanUse ? (comparison.RequiresReplacementConfirmation ? "替换" : "装备") : "不可装备",
 			candidate.CanUse,
 			() => EquipEntryAsync(entry, detailPanel),
 			CloseAfterExecute: false);
@@ -112,6 +115,20 @@ public partial class CharacterEquipmentSelectionPanel : JyPanel
 	{
 		try
 		{
+			var state = Game.State;
+			var character = state.Party.GetMember(_characterId);
+			var comparison = EquipmentComparisonPresenter.Compare(character, entry);
+			if (comparison.RequiresReplacementConfirmation &&
+				!await UIRoot.Instance.ShowConfirmAsync(FormatReplacementPrompt(character.Name, comparison)))
+			{
+				return;
+			}
+
+			if (!ReferenceEquals(state, Game.State) || !GodotObject.IsInstanceValid(this))
+			{
+				return;
+			}
+
 			var result = await Game.ItemUseService.UseAsync(entry, _characterId);
 			if (!result.Success)
 			{
@@ -141,6 +158,33 @@ public partial class CharacterEquipmentSelectionPanel : JyPanel
 		{
 			child.QueueFree();
 		}
+	}
+
+	private static string FormatReplacementPrompt(string characterName, EquipmentComparison comparison)
+	{
+		var lines = new List<string>
+		{
+			$"将【{characterName}】的【{comparison.Current!.Definition.Name}】替换为【{comparison.Candidate.Name}】？",
+		};
+		if (comparison.StatDeltas.Count > 0)
+		{
+			lines.Add(string.Join("　", comparison.StatDeltas.Select(static delta =>
+				$"{StatCatalog.GetDisplayNameCn(delta.Stat)} {FormatDelta(delta.Stat, delta.Delta)}")));
+		}
+
+		lines.AddRange(comparison.GainedAffixes.Select(static line =>
+			$"＋ {AffixFormatter.FormatCn(line.Affix, Game.ContentRepository)}"));
+		lines.AddRange(comparison.LostAffixes.Select(static line =>
+			$"－ {AffixFormatter.FormatCn(line.Affix, Game.ContentRepository)}"));
+		return string.Join("\n", lines);
+	}
+
+	private static string FormatDelta(StatType stat, double delta)
+	{
+		var isRatio = stat is StatType.CritChance or StatType.CritMult or StatType.Lifesteal or
+			StatType.Evasion or StatType.Accuracy or StatType.AntiCritChance or StatType.AntiDebuff;
+		var value = isRatio ? $"{delta * 100:0.#}%" : $"{delta:0.##}";
+		return delta > 0 ? $"+{value}" : value;
 	}
 
 	private static string FormatSlotName(EquipmentSlotType slotType) =>

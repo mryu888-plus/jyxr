@@ -46,6 +46,8 @@
 
 `Inventory` 使用有序条目表示堆叠物品和独立装备；带实例差异的装备独立保存。`ChestState` 复用 Inventory，存取规则由 `ChestService` 执行。装备实例序列属于 GameState，由 `EquipmentInstanceFactory` 统一分配。
 
+角色选装由 Presentation 的 [EquipmentComparisonPresenter](../src/Game.Presentation/Items/EquipmentComparisonPresenter.cs) 比较候选与该槽位当前装备：加法属性逐项给出差值，其余词条按内容标记新增、失去或保留；槽位已有装备时换装前需要确认，确认文案由宿主用 `AffixFormatter` 格式化。比较、高亮与确认规则不写进 Godot 控件脚本。
+
 背包、储物箱与洗练选装共用 `ItemTagBar`，标签来自当前候选物品的 definition。`ItemCatalogFilter` 在 Presentation 中管理分类、标签与匹配规则；数据刷新保留仍有效的标签，切换分类或标签消失时回到全部。洗练选装只展示装备标签，包含白装堆叠与独立装备。
 
 装备随机词条（掉落、珍珑与洗练候选）复刻 legacy `ItemInstance.GenerateRandomTrigger()`：匹配等级的表合并后，由 `SequentialTrialSelector` 按配置顺序逐项以 `weight / totalWeight` 试投，整轮未命中则重来，因此表中靠前的选项实际概率高于权重占比，调整词条表顺序会改变掉落分布。去重同样沿用原版：没有候选池的词条按类型去重（随机属性，外功、内功、招式、奥义加成各自最多一条），有候选池的天赋与速度词条按具体目标去重，武器加成按武器类型区分；目标信息仍保存在原子 affix 中。
