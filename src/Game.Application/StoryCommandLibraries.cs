@@ -275,6 +275,10 @@ internal sealed class PartyLearningStoryCommands
     public void Join(string characterId, string? definitionId = null) =>
         _session.PartyService.Join(characterId, definitionId);
 
+    [StoryCommand("transform")]
+    public void Transform(string characterId, string definitionId) =>
+        _session.PartyService.Transform(characterId, definitionId);
+
     [StoryCommand("join_random")]
     public void JoinRandom(IReadOnlyList<string> characterIds)
     {

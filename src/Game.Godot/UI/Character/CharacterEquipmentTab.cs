@@ -18,6 +18,7 @@ public partial class CharacterEquipmentTab : Control
 	private CharacterEquipmentBox _accessoryBox = null!;
 
 	private CharacterInstance? _character;
+	private Button _practiceBookButton = null!;
 	public bool IsReadOnly { get; set; }
 
 	public override void _Ready()
@@ -32,6 +33,46 @@ public partial class CharacterEquipmentTab : Control
 		ConnectSlot(_weaponSlot, _weaponBox, EquipmentSlotType.Weapon);
 		ConnectSlot(_armorSlot, _armorBox, EquipmentSlotType.Armor);
 		ConnectSlot(_accessorySlot, _accessoryBox, EquipmentSlotType.Accessory);
+		_practiceBookButton = CreatePracticeBookButton();
+		Refresh();
+	}
+
+	// 修炼中的武学经书 (legacy 第四个装备位): 在背包里对角色使用经书装上, 点这里卸下.
+	private Button CreatePracticeBookButton()
+	{
+		var button = new Button
+		{
+			Flat = true,
+			Alignment = HorizontalAlignment.Left,
+			Position = _accessorySlot.Position + new Vector2(0, _accessorySlot.Size.Y + 24),
+			CustomMinimumSize = new Vector2(_accessorySlot.Size.X * 2, 56),
+		};
+		button.AddThemeFontSizeOverride("font_size", 30);
+		button.Pressed += OnPracticeBookPressed;
+		_accessorySlot.GetParent().AddChild(button);
+		return button;
+	}
+
+	private void OnPracticeBookPressed()
+	{
+		if (_character?.PracticeBook is null)
+		{
+			UIRoot.Instance.ShowToast("在背包中对角色使用武学经书即可修炼。");
+			return;
+		}
+
+		if (IsReadOnly)
+		{
+			return;
+		}
+
+		var book = Game.PracticeBookService.Unequip(_character.Id);
+		if (book is not null)
+		{
+			Game.Audio.PlaySfx("音效.装备");
+			UIRoot.Instance.ShowToast($"卸下经书【{book.Name}】");
+		}
+
 		Refresh();
 	}
 
@@ -52,6 +93,10 @@ public partial class CharacterEquipmentTab : Control
 		SyncSlot(EquipmentSlotType.Weapon, _weaponBox);
 		SyncSlot(EquipmentSlotType.Armor, _armorBox);
 		SyncSlot(EquipmentSlotType.Accessory, _accessoryBox);
+		_practiceBookButton.Text = _character.PracticeBook is { } book
+			? $"修炼经书：【{book.Name}】（点击卸下）"
+			: "修炼经书：无";
+		_practiceBookButton.Visible = Game.Config.SkillBookMode == SkillBookMode.Practice;
 	}
 
 	private void SyncSlot(

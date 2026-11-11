@@ -89,7 +89,7 @@ public static class EquipmentRandomAffixGenerator
         }
 
         return GenerateRoll(
-            WeightedRandomSelector.Select(options, static option => option.Weight, random),
+            SequentialTrialSelector.Select(options, static option => option.Weight, random),
             equipment.Level,
             round,
             contentRepository,
@@ -130,7 +130,7 @@ public static class EquipmentRandomAffixGenerator
             .ToArray();
 
         return options.Length == 0 ? null : GenerateRoll(
-            WeightedRandomSelector.Select(options, static option => option.Weight, random),
+            SequentialTrialSelector.Select(options, static option => option.Weight, random),
             equipment.Level, round, contentRepository, random);
     }
 
@@ -153,7 +153,7 @@ public static class EquipmentRandomAffixGenerator
     {
         for (var attempt = 0; attempt < 1024; attempt++)
         {
-            var option = WeightedRandomSelector.Select(options, static value => value.Weight, random);
+            var option = SequentialTrialSelector.Select(options, static value => value.Weight, random);
             var roll = GenerateRoll(option, itemLevel, round, contentRepository, random);
             if (existingKeys.Add(roll.Key))
             {

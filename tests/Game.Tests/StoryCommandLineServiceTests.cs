@@ -1,3 +1,4 @@
+using Game.Core.Definitions;
 using Game.Application;
 using Game.Core.Model;
 
@@ -54,6 +55,53 @@ public sealed class StoryCommandLineServiceTests
         await service.ExecuteAsync("set_no_regret true");
         Assert.True(session.State.Adventure.NoRegret);
         await Assert.ThrowsAsync<ExpressionBindingException>(async () => await service.ExecuteAsync("set_no_regret 1"));
+    }
+
+    [Fact]
+    public void Parse_SupportsListArgumentsWithQuotedStringsAndSpaces()
+    {
+        var service = CreateService(out _);
+
+        var invocation = service.Parse("add_random_item [\"小还丹\", '大 还丹', \"a]b\"] 2");
+
+        Assert.Equal("add_random_item", invocation.Name);
+        var list = invocation.Arguments[0].AsList("test");
+        Assert.Equal(["小还丹", "大 还丹", "a]b"], list.Select(value => value.AsString("test")).ToArray());
+        Assert.Equal(2d, invocation.Arguments[1].AsNumber("test"));
+    }
+
+    [Fact]
+    public void Parse_SupportsNestedAndEmptyListArguments()
+    {
+        var service = CreateService(out _);
+
+        var invocation = service.Parse("sample_command [] [[1, 2], [true]]");
+
+        Assert.Empty(invocation.Arguments[0].AsList("test"));
+        var nested = invocation.Arguments[1].AsList("test");
+        Assert.Equal(2d, nested[0].AsList("test")[1].AsNumber("test"));
+        Assert.True(nested[1].AsList("test")[0].AsBoolean("test"));
+    }
+
+    [Fact]
+    public void Parse_RejectsUnclosedOrNonLiteralLists()
+    {
+        var service = CreateService(out _);
+
+        Assert.Throws<InvalidOperationException>(() => service.Parse("add_random_item [\"a\", \"b\" 2"));
+        Assert.ThrowsAny<Exception>(() => service.Parse("add_random_item [silver] 2"));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ThinListArgumentReachesListCommand()
+    {
+        var item = new NormalItemDefinition { Id = "小还丹", Name = "小还丹", Type = ItemType.Utility, ConsumeOnUse = false };
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(items: [item]));
+        var service = session.StoryService.CommandLine;
+
+        await service.ExecuteAsync("add_random_item [\"小还丹\"] 2");
+
+        Assert.True(session.State.Inventory.ContainsStack(item, 2));
     }
 
     private static StoryCommandLineService CreateService(out GameSession session)

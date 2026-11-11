@@ -6,10 +6,15 @@ namespace Game.Application;
 
 public static class GameExpressionSymbols
 {
+    public const string HeroNameVariable = "hero_name";
+    public const string HeroineNameVariable = "heroine_name";
+    public const string ZhenlongLevelVariable = "zhenlong_level";
+
     public static IReadOnlySet<string> BuiltInVariables { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         "silver", "yuanbao", "round", "difficulty", "sect", "morality", "daode", "rank", "elapsed_days",
         "current_map", "current_time_slot", "friend_count",
+        HeroNameVariable, HeroineNameVariable, ZhenlongLevelVariable,
     };
 
     public static void ValidateDynamicVariables(GameState state, StoryExecutionContext context)
@@ -48,6 +53,17 @@ internal sealed class GameExpressionVariableResolver : IExpressionVariableResolv
     public bool TryResolve(string name, out ExpressionValue value)
     {
         var state = _session.State;
+        switch (name)
+        {
+            case GameExpressionSymbols.HeroNameVariable:
+                return TryResolveCharacterName(Party.HeroCharacterId, out value);
+            case GameExpressionSymbols.HeroineNameVariable:
+                return TryResolveCharacterName(Party.HeroineCharacterId, out value);
+            case GameExpressionSymbols.ZhenlongLevelVariable:
+                value = ExpressionValue.FromNumber(_session.Profile.ZhenlongqijuLevel + 1);
+                return true;
+        }
+
         value = name switch
         {
             "silver" => ExpressionValue.FromNumber(state.Currency.Silver),
@@ -68,6 +84,25 @@ internal sealed class GameExpressionVariableResolver : IExpressionVariableResolv
         return GameExpressionSymbols.BuiltInVariables.Contains(name)
             || _context.Variables.TryGetValue(name, out value)
             || state.Story.TryGetVariable(name, out value);
+    }
+
+    // 队伍里的实例名优先 (玩家可能改过名), 否则用人物定义里的名字; 都没有时视为未定义.
+    private bool TryResolveCharacterName(string characterId, out ExpressionValue value)
+    {
+        if (_session.State.Party.TryGetCharacter(characterId, out var character) && character is not null)
+        {
+            value = ExpressionValue.FromString(character.Name);
+            return true;
+        }
+
+        if (_session.ContentRepository.TryGetCharacter(characterId, out var definition))
+        {
+            value = ExpressionValue.FromString(definition.Name);
+            return true;
+        }
+
+        value = default;
+        return false;
     }
 }
 

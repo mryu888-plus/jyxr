@@ -1,25 +1,34 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
-using Game.Core.Model;
-using Game.Core.Model.Character;
 
 namespace Game.Application;
 
+/// <summary>
+/// 剧情对白/选项里的 <c>$name$</c> 占位符。名字按剧情表达式的变量规则解析：先找内建变量
+/// (<c>hero_name</c>、<c>heroine_name</c>、<c>zhenlong_level</c> 以及条件里能用的 <c>silver</c>、<c>round</c> 等)，
+/// 再找当前执行上下文和剧情动态变量。legacy 的 <c>$MALE$</c>、<c>$FEMALE$</c>、<c>$ZHENLONG_LEVEL$</c> 是对应内建变量的别名。
+/// 解析不到的占位符原样保留。
+/// </summary>
 internal sealed class StoryTextInterpolator
 {
-    private const string HeroVariableName = "MALE";
-    private const string FemaleVariableName = "FEMALE";
-    private const string ZhenlongLevelVariableName = "ZHENLONG_LEVEL";
-    private static readonly Regex PlaceholderPattern = new(@"\$([A-Z_][A-Z0-9_]*)\$", RegexOptions.Compiled);
+    private static readonly Regex PlaceholderPattern = new(@"\$([A-Za-z_][A-Za-z0-9_]*)\$", RegexOptions.Compiled);
+
+    private static readonly IReadOnlyDictionary<string, string> LegacyAliases = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["MALE"] = GameExpressionSymbols.HeroNameVariable,
+        ["FEMALE"] = GameExpressionSymbols.HeroineNameVariable,
+        ["ZHENLONG_LEVEL"] = GameExpressionSymbols.ZhenlongLevelVariable,
+    };
 
     private readonly GameSession _session;
+    private readonly StoryExecutionContext _context;
 
-    public StoryTextInterpolator(GameSession session)
+    public StoryTextInterpolator(GameSession session, StoryExecutionContext? context = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         _session = session;
+        _context = context ?? StoryExecutionContext.Empty;
     }
-
-    private GameState State => _session.State;
 
     public string Interpolate(string text)
     {
@@ -30,60 +39,33 @@ internal sealed class StoryTextInterpolator
             return text;
         }
 
-        return PlaceholderPattern.Replace(text, ReplacePlaceholder);
-    }
-
-    private string ReplacePlaceholder(Match match)
-    {
-        var variableName = match.Groups[1].Value;
-        return TryResolvePlaceholder(variableName, out var value)
-            ? value
-            : match.Value;
-    }
-
-    private bool TryResolvePlaceholder(string variableName, out string value)
-    {
-        switch (variableName)
+        var resolver = new GameExpressionVariableResolver(_session, _context);
+        return PlaceholderPattern.Replace(text, match =>
         {
-            case HeroVariableName:
-                return TryResolveCharacterName(Party.HeroCharacterId, out value);
-            case FemaleVariableName:
-                return TryResolveCharacterName(Party.HeroineCharacterId, out value);
-            case ZhenlongLevelVariableName:
-                value = (_session.Profile.ZhenlongqijuLevel + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var name = match.Groups[1].Value;
+            name = LegacyAliases.GetValueOrDefault(name, name);
+            return resolver.TryResolve(name, out var value) && TryFormat(value, out var formatted)
+                ? formatted
+                : match.Value;
+        });
+    }
+
+    private static bool TryFormat(ExpressionValue value, out string formatted)
+    {
+        switch (value.Kind)
+        {
+            case ExpressionValueKind.String:
+                formatted = value.AsString("story text placeholder");
+                return true;
+            case ExpressionValueKind.Number:
+                formatted = value.AsNumber("story text placeholder").ToString(CultureInfo.InvariantCulture);
+                return true;
+            case ExpressionValueKind.Boolean:
+                formatted = value.AsBoolean("story text placeholder") ? "true" : "false";
                 return true;
             default:
-                value = string.Empty;
+                formatted = string.Empty;
                 return false;
         }
-    }
-
-    private bool TryResolveCharacterName(string characterId, out string value)
-    {
-        if (State.Party.TryGetCharacter(characterId, out var character) && character is not null)
-        {
-            value = character.Name;
-            return true;
-        }
-
-        if (TryGetCharacterDefinitionName(characterId, out value))
-        {
-            return true;
-        }
-
-        value = string.Empty;
-        return false;
-    }
-
-    private bool TryGetCharacterDefinitionName(string characterId, out string value)
-    {
-        if (_session.ContentRepository.TryGetCharacter(characterId, out var character))
-        {
-            value = character.Name;
-            return true;
-        }
-
-        value = string.Empty;
-        return false;
     }
 }

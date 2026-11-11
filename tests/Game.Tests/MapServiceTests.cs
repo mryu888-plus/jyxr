@@ -976,7 +976,10 @@ public sealed class MapServiceTests
 
     private static CharacterInstance CreateCharacter(string id)
     {
-        var definition = TestContentFactory.CreateCharacterDefinition(id);
+        // 给出正的资源上限: 运行时把气血上限下限钳到 1, 0 上限的夹具会让“回满”断言失真。
+        var definition = TestContentFactory.CreateCharacterDefinition(
+            id,
+            stats: new Dictionary<StatType, int> { [StatType.MaxHp] = 100, [StatType.MaxMp] = 50 });
         return TestContentFactory.CreateCharacterInstance(id, definition);
     }
 }

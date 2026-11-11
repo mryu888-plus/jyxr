@@ -1,3 +1,4 @@
+using Game.Application;
 using Game.Core.Model.Skills;
 
 namespace Game.Godot.UI;
@@ -8,24 +9,18 @@ public static class CharacterSkillDetailActionFactory
 	{
 		ArgumentNullException.ThrowIfNull(skill);
 
-		return skill switch
+		return CharacterService.GetForgetAvailability(skill) switch
 		{
-			FormSkillInstance or LegendSkillInstance => CreateDisabledForgetAction(),
-			InternalSkillInstance { IsEquipped: true } => CreateDisabledForgetAction(),
-			ExternalSkillInstance externalSkill => CreateForgetAction(() =>
-				Game.CharacterService.RemoveExternalSkill(externalSkill.Owner, externalSkill.Id)),
-			InternalSkillInstance internalSkill => CreateForgetAction(() =>
-				Game.CharacterService.RemoveInternalSkill(internalSkill.Owner, internalSkill.Id)),
-			SpecialSkillInstance specialSkill => CreateForgetAction(() =>
-				Game.CharacterService.RemoveSpecialSkill(specialSkill.Owner, specialSkill.Id)),
-			_ => null,
+			SkillForgetAvailability.Available => CreateForgetAction(() => Game.CharacterService.ForgetSkill(skill)),
+			SkillForgetAvailability.Unsupported => null,
+			_ => CreateDisabledForgetAction(),
 		};
 	}
 
 	private static DetailPanelAction CreateDisabledForgetAction() =>
 		new("遗忘", false, () => Task.CompletedTask);
 
-	private static DetailPanelAction CreateForgetAction(Action action)
+	private static DetailPanelAction CreateForgetAction(Func<bool> action)
 	{
 		ArgumentNullException.ThrowIfNull(action);
 		return new DetailPanelAction(
@@ -33,8 +28,11 @@ public static class CharacterSkillDetailActionFactory
 			true,
 			() =>
 			{
-				action();
-				Game.Audio.PlaySfx("音效.恢复2");
+				if (action())
+				{
+					Game.Audio.PlaySfx("音效.恢复2");
+				}
+
 				return Task.CompletedTask;
 			});
 	}

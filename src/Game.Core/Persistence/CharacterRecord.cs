@@ -43,4 +43,5 @@ public sealed record CharacterRecord(
     IReadOnlyList<InternalSkillRecord> InternalSkills,
     IReadOnlyDictionary<EquipmentSlotType, EquipmentRecord> EquippedItems,
     CharacterGender? Gender = null,
-    BattleAiType AiType = BattleAiType.Basic);
+    BattleAiType AiType = BattleAiType.Basic,
+    string? PracticeBookItemId = null);

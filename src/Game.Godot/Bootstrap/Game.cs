@@ -84,6 +84,7 @@ public static class Game
 	public static ChestService ChestService => Session.ChestService;
 	public static CharacterService CharacterService => Session.CharacterService;
 	public static ItemUseService ItemUseService => Session.ItemUseService;
+	public static PracticeBookService PracticeBookService => Session.PracticeBookService;
 	public static ShopService ShopService => Session.ShopService;
 	public static BattleService BattleService => Session.BattleService;
 	public static SpecialBattleService SpecialBattleService => Session.SpecialBattleService;

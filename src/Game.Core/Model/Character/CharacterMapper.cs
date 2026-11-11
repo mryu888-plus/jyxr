@@ -50,9 +50,9 @@ public static class CharacterMapper
 
         character.UnlockedTalents.AddRange(definition.Talents);
         character.SpecialSkills.AddRange(definition.SpecialSkills.Select(skill => new SpecialSkillInstance(skill, character, true)));
-        foreach (var equipmentDefinition in definition.Equipments)
+        foreach (var equipment in definition.Equipment)
         {
-            character.AddEquipmentInstance(equipmentInstanceFactory.Create(equipmentDefinition));
+            character.AddEquipmentInstance(equipmentInstanceFactory.Create(equipment.Equipment, equipment.ExtraAffixes));
         }
 
         character.RebuildSnapshot();
@@ -119,6 +119,13 @@ public static class CharacterMapper
             character.AddEquipmentInstance(EquipmentMapper.FromRecord(equipment.Value, contentRepository));
         }
 
+        // 修炼中的经书: 内容里已删掉的物品直接忽略, 不让旧存档读失败.
+        if (record.PracticeBookItemId is { } practiceBookId &&
+            contentRepository.TryGetItem(practiceBookId, out var practiceBook))
+        {
+            character.SetPracticeBook(practiceBook);
+        }
+
         character.RebuildSnapshot();
         return character;
     }
@@ -143,7 +150,8 @@ public static class CharacterMapper
                 entry => entry.Key,
                 entry => EquipmentMapper.ToRecord(entry.Value)),
             character.Gender,
-            character.AiType);
+            character.AiType,
+            character.PracticeBook?.Id);
 
     private static void CopyStats(IReadOnlyDictionary<StatType, int> source, Dictionary<StatType, int> target)
     {

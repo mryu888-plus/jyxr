@@ -21,6 +21,8 @@ public sealed class GameConfig
 	public ItemRequirementStatSource ItemRequirementStatSource { get; init; } = ItemRequirementStatSource.Final;
 	public bool MaximizeNewPartyCharacterSkills { get; init; } = true;
 	public bool IgnoreSkillBookLevelLimit { get; init; }
+	/// <summary>武学经书的用法: practice = 原版装备修炼 (默认), instant = 使用即学会到书本等级。</summary>
+	public SkillBookMode SkillBookMode { get; init; } = SkillBookMode.Practice;
 	public int BaseExternalSkillMaxLevel { get; init; } = 10;
 	public int BaseInternalSkillMaxLevel { get; init; } = 10;
 	public int AbsoluteSkillMaxLevel { get; init; } = 20;
@@ -99,6 +101,14 @@ public sealed class GameConfig
 }
 
 public sealed record EquipmentRandomAffixCountWeight(int Count, int Weight);
+
+public enum SkillBookMode
+{
+	[System.Text.Json.Serialization.JsonStringEnumMemberName("practice")]
+	Practice,
+	[System.Text.Json.Serialization.JsonStringEnumMemberName("instant")]
+	Instant,
+}
 
 public enum ItemRequirementStatSource
 {

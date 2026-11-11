@@ -584,7 +584,7 @@ public sealed class ModSystemTests
                     "externalSkills": [{"level": 1, "id": "basic_attack"}],
                     "internalSkills": [],
                     "talentIds": [],
-                    "equipmentIds": ["iron_blade"],
+                    "equipment": ["iron_blade"],
                     "specialSkillIds": []
                   }
                 }

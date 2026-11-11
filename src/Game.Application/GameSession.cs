@@ -50,6 +50,7 @@ public sealed class GameSession
         ChestService = new ChestService(this);
         CharacterService = new CharacterService(this);
         ItemUseService = new ItemUseService(this);
+        PracticeBookService = new PracticeBookService(this);
         RewardGrantService = new RewardGrantService(this);
         ShopService = new ShopService(this);
         EquipmentRefinementService = new EquipmentRefinementService(this);
@@ -81,6 +82,7 @@ public sealed class GameSession
     public ChestService ChestService { get; }
     public CharacterService CharacterService { get; }
     public ItemUseService ItemUseService { get; }
+    public PracticeBookService PracticeBookService { get; }
     public RewardGrantService RewardGrantService { get; }
     public ShopService ShopService { get; }
     public EquipmentRefinementService EquipmentRefinementService { get; }

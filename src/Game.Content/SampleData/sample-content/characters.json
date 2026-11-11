@@ -20,7 +20,7 @@
     ],
     "internalSkills": [],
     "talentIds": [],
-    "equipmentIds": [
+    "equipment": [
       "iron_blade"
     ],
     "specialSkillIds": []
@@ -48,7 +48,7 @@
     "talentIds": [
       "battle_focus"
     ],
-    "equipmentIds": [
+    "equipment": [
       "oak_staff"
     ],
     "specialSkillIds": []
@@ -74,7 +74,7 @@
     ],
     "internalSkills": [],
     "talentIds": [],
-    "equipmentIds": [
+    "equipment": [
       "ward_charm"
     ],
     "specialSkillIds": []
@@ -100,7 +100,7 @@
     ],
     "internalSkills": [],
     "talentIds": [],
-    "equipmentIds": [
+    "equipment": [
       "iron_blade"
     ],
     "specialSkillIds": []
@@ -126,7 +126,7 @@
     ],
     "internalSkills": [],
     "talentIds": [],
-    "equipmentIds": [
+    "equipment": [
       "oak_staff"
     ],
     "specialSkillIds": []
@@ -150,7 +150,7 @@
     "talentIds": [
       "battle_focus"
     ],
-    "equipmentIds": [],
+    "equipment": [],
     "specialSkillIds": []
   }
 ]

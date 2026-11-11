@@ -54,6 +54,34 @@ public sealed class PartyService
         _session.Events.Publish(new PartyChangedEvent());
     }
 
+    /// <summary>
+    /// 角色转化/重建: 用另一份 CharacterDefinition 重建名册里已有的角色实例 (如 程英.初级 -> 程英.高级)。
+    /// 实例 id 和名册位置不变; 新模板提供基础数值、自带武学与天赋, 已有的成长保留:
+    /// 等级/经验取较高者, 基础属性逐项取较高者, 未分配属性点、已学武学 (等级取较高者)、天赋、特技、
+    /// 装备中的内功和身上的装备都带过去; 玩家改过的名字和头像保留。
+    /// </summary>
+    public void Transform(string characterId, string definitionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
+        var definition = _session.ContentRepository.GetCharacter(definitionId);
+        if (!State.Party.TryGetCharacter(characterId, out var previous))
+        {
+            throw new InvalidOperationException($"Character '{characterId}' is not in the party roster and cannot be transformed.");
+        }
+
+        if (string.Equals(previous.Definition.Id, definition.Id, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var rebuilt = CreateInitialCharacter(characterId, definitionId);
+        CharacterTransformation.CarryOverGrowth(previous, rebuilt);
+        State.Party.Replace(rebuilt);
+        _session.Events.Publish(new PartyChangedEvent());
+        _session.Events.Publish(new CharacterChangedEvent(characterId));
+    }
+
     public void Follow(string characterId, string? definitionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(characterId);

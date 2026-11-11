@@ -162,6 +162,7 @@ public sealed class CharacterService
             experience,
             Config.MaxLevel,
             () => ResolveGrowTemplate(character));
+        _session.PracticeBookService.ApplyExperience(character, experience, notify: true);
         if (change.LeveledUp)
         {
             CharacterResourceLimitPolicy.ClampBaseResourceStats(character);
@@ -351,6 +352,48 @@ public sealed class CharacterService
             case LearnableKind.Special: RemoveSpecialSkill(character, targetId); break;
             case LearnableKind.Talent: RemoveTalent(character, targetId); break;
         }
+    }
+
+    /// <summary>
+    /// 玩家主动遗忘技能的规则 (对应 legacy 洗练书): 外功、特技可遗忘; 内功除当前装备的那门外可遗忘;
+    /// 招式、奥义是派生技能, 不能单独遗忘. 剧情强制移除走 Remove* 系列, 不受这些限制.
+    /// </summary>
+    public static SkillForgetAvailability GetForgetAvailability(SkillInstance skill)
+    {
+        ArgumentNullException.ThrowIfNull(skill);
+        return skill switch
+        {
+            FormSkillInstance or LegendSkillInstance => SkillForgetAvailability.DerivedSkill,
+            InternalSkillInstance { IsEquipped: true } => SkillForgetAvailability.EquippedInternalSkill,
+            ExternalSkillInstance or InternalSkillInstance or SpecialSkillInstance => SkillForgetAvailability.Available,
+            _ => SkillForgetAvailability.Unsupported,
+        };
+    }
+
+    public bool ForgetSkill(SkillInstance skill)
+    {
+        ArgumentNullException.ThrowIfNull(skill);
+        var availability = GetForgetAvailability(skill);
+        if (availability != SkillForgetAvailability.Available)
+        {
+            throw new InvalidOperationException($"Skill '{skill.Id}' cannot be forgotten: {availability}.");
+        }
+
+        var character = skill.Owner;
+        var removed = skill switch
+        {
+            ExternalSkillInstance => character.RemoveExternalSkill(skill.Id),
+            InternalSkillInstance => character.RemoveInternalSkill(skill.Id),
+            SpecialSkillInstance => character.RemoveSpecialSkill(skill.Id),
+            _ => false,
+        };
+        if (!removed)
+        {
+            return false;
+        }
+
+        PublishToastAndCharacterChanged(character, $"{character.Name}的技能【{skill.Name}】移除了！");
+        return true;
     }
 
     public void RemoveExternalSkill(string characterId, string skillId) =>

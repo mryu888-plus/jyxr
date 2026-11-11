@@ -100,9 +100,12 @@ public partial class SaveSlotCard : Button
 		_difficultyLabel.Text = GameDifficultyFormatter.FormatNameCn(summary.Difficulty);
 		_roundLabel.Text = $"周目 {summary.Round}";
 		_locationLabel.Text = $"当前位置  {ResolveMapName(summary.CurrentMapId)}";
-		_savedAtLabel.Text = summary.SavedAtUtc is null
+		var savedAt = summary.SavedAtUtc is null
 			? string.Empty
 			: $"保存于 {summary.SavedAtUtc.Value.ToLocalTime():yyyy-MM-dd HH:mm}";
+		_savedAtLabel.Text = string.IsNullOrEmpty(summary.Note)
+			? savedAt
+			: string.IsNullOrEmpty(savedAt) ? $"备注：{summary.Note}" : $"{savedAt}  备注：{summary.Note}";
 	}
 
 	private static string BuildGameTimeText(ClockRecord? clockRecord)

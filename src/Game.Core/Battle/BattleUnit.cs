@@ -25,7 +25,8 @@ public sealed class BattleUnit
         BattleFacing facing = BattleFacing.Right,
         int? hp = null,
         int? mp = null,
-        int rage = 0)
+        int rage = 0,
+        bool? receivesPersistentGrowth = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(character);
@@ -37,6 +38,10 @@ public sealed class BattleUnit
         Position = position;
         Facing = facing;
         AiType = character.AiType;
+        // 是否把战斗中的成长 (武学经验、人物经验、升级) 写回持久角色, 由构建战斗的一方 (应用层) 决定;
+        // 未显式指定时沿用旧规则: 1 号阵营.
+        ReceivesPersistentGrowth = receivesPersistentGrowth ?? team == 1;
+        InitialCharacterLevel = character.Level;
 
         var initialMaxHp = MaxHp;
         var initialMaxMp = MaxMp;
@@ -50,6 +55,12 @@ public sealed class BattleUnit
     public CharacterInstance Character { get; }
 
     public int Team { get; }
+
+    /// <summary>战斗中的成长是否属于持久角色。由战斗构建方决定，引擎只读取。</summary>
+    public bool ReceivesPersistentGrowth { get; }
+
+    /// <summary>进入战斗时角色的等级，用于战斗结束后汇总升级。</summary>
+    public int InitialCharacterLevel { get; }
 
     public GridPosition Position { get; internal set; }
 

@@ -8,7 +8,7 @@ using Game.Godot.Story;
 using Game.Godot.UI;
 using Godot;
 using ApplicationGameSession = Game.Application.GameSession;
-using DiagnosticLogger = Game.Application.IDiagnosticLogger;
+using DiagnosticLogger = Game.Core.Diagnostics.IDiagnosticLogger;
 
 namespace Game.Godot;
 

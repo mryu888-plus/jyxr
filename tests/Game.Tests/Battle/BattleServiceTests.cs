@@ -24,6 +24,71 @@ public sealed class BattleServiceTests
     }
 
     [Fact]
+    public void BuildBattleState_RaisesNpcSkillLevelsByRoundAndClampsToAbsoluteMax()
+    {
+        // legacy Role.addRoundSkillLevel: 每 NPC_SKILL_LEVEL_ADD_BY_ZHOUMU(2) 周目 +1 级, 外功/内功都封顶 20.
+        var external = TestContentFactory.CreateExternalSkill("npc_external");
+        var internalSkill = TestContentFactory.CreateInternalSkill("npc_internal");
+        var enemy = TestContentFactory.CreateCharacterDefinition(
+            "enemy",
+            externalSkills: [new InitialExternalSkillEntryDefinition(external, 19)],
+            internalSkills: [new InitialInternalSkillEntryDefinition(internalSkill, 5)]);
+        var session = CreateSession(
+            CreateFixedPlayerBattle(),
+            config: CreateConfigWithoutEnemyRandomTalents(),
+            enemyDefinition: enemy);
+        session.State.Adventure.SetRound(6);
+
+        var state = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("fixed_player", []));
+
+        var npc = Assert.Single(state.Units.Where(unit => unit.Team == 2)).Character;
+        Assert.Equal(20, npc.GetExternalSkills().Single().Level);
+        Assert.Equal(8, npc.GetInternalSkills().Single().Level);
+    }
+
+    [Fact]
+    public void BuildBattleState_OnlyPartyMembersReceivePersistentGrowth()
+    {
+        var session = CreateSession(CreateFixedPlayerBattle());
+
+        var guestState = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("fixed_player", []));
+
+        // 1 号阵营里的临时角色 (非队伍实例) 和敌人都不把成长写回持久角色.
+        Assert.All(guestState.Units, unit => Assert.False(unit.ReceivesPersistentGrowth));
+
+        var hero = TestContentFactory.CreateCharacterInstance(
+            "shadow",
+            TestContentFactory.CreateCharacterDefinition("shadow"));
+        session.State.Party.AddMember(hero);
+        var partyState = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("fixed_player", []));
+
+        Assert.True(Assert.Single(partyState.Units, unit => unit.Team == 1).ReceivesPersistentGrowth);
+        Assert.False(Assert.Single(partyState.Units, unit => unit.Team == 2).ReceivesPersistentGrowth);
+    }
+
+    [Fact]
+    public void ApplyPlayerBattleCarryover_PublishesBattleLevelUpsAsApplicationEvents()
+    {
+        var session = CreateSession(CreateFixedPlayerBattle());
+        var hero = TestContentFactory.CreateCharacterInstance(
+            "shadow",
+            TestContentFactory.CreateCharacterDefinition("shadow"));
+        session.State.Party.AddMember(hero);
+        var state = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("fixed_player", []));
+        var unit = Assert.Single(state.Units, unit => unit.Team == 1);
+        var levelUps = new List<CharacterLeveledUpEvent>();
+        var changed = new List<CharacterChangedEvent>();
+        using var levelSubscription = session.Events.Subscribe<CharacterLeveledUpEvent>(levelUps.Add);
+        using var changedSubscription = session.Events.Subscribe<CharacterChangedEvent>(changed.Add);
+
+        unit.Character.SetLevel(3);
+        session.BattleService.ApplyPlayerBattleCarryover(state);
+
+        Assert.Equal(new CharacterLeveledUpEvent("shadow", 1, 3), Assert.Single(levelUps));
+        Assert.Equal("shadow", Assert.Single(changed).CharacterId);
+    }
+
+    [Fact]
     public void BuildBattleState_Throws_WhenBattleHasNoPlayerTeamUnit()
     {
         var session = CreateSession(CreateEnemyOnlyBattle());

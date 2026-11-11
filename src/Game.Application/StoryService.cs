@@ -44,7 +44,7 @@ public sealed class StoryService
             executionState,
             Host,
             runtimeDispatcher,
-            new StoryTextInterpolator(_session),
+            new StoryTextInterpolator(_session, executionContext),
             _expressions.Create(executionContext));
 
         await foreach (var storyEvent in _runtime.RunAsync(entry.Script, runtimeHost, entry.Segment.Name, cancellationToken))

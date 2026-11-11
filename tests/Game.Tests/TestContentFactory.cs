@@ -122,7 +122,7 @@ internal static class TestContentFactory
             externalSkills ?? [],
             internalSkills ?? [],
             (talents ?? []).Select(static talent => new ContentReference<TalentDefinition>(talent.Id, talent)).ToList(),
-            (equipment ?? []).Select(static item => new ContentReference<EquipmentDefinition>(item.Id, item)).ToList(),
+            (equipment ?? []).Select(static item => new InitialEquipmentEntryDefinition(item)).ToList(),
             level,
             portrait,
             model,

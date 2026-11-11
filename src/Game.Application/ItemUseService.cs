@@ -55,6 +55,13 @@ public sealed class ItemUseService
             return ItemUseTargetCandidate.Disabled(character.Id, requirementFailure);
         }
 
+        if (_session.PracticeBookService.IsPracticeBook(entry.Definition))
+        {
+            return ReferenceEquals(character.PracticeBook, entry.Definition)
+                ? ItemUseTargetCandidate.Disabled(character.Id, "正在修炼这本经书")
+                : ItemUseTargetCandidate.Enabled(character.Id, []);
+        }
+
         var effectAnalysis = support.Kind == ItemUseKind.Effects
             ? AnalyzeEffectTargets(support.Effects, character)
             : EffectTargetAnalysis.AllApplicable(support.Effects);
@@ -191,6 +198,11 @@ public sealed class ItemUseService
         if (!support.IsSupported)
         {
             return ItemUseResult.Failed(support.Message);
+        }
+
+        if (_session.PracticeBookService.IsPracticeBook(entry.Definition))
+        {
+            return _session.PracticeBookService.Equip(target, entry.Definition);
         }
 
         if (support.Effects is [RunStoryItemUseEffectDefinition runStory])

@@ -20,6 +20,24 @@ public sealed class SkillMaxLevelPolicyTests
     }
 
     [Fact]
+    public async Task MaxLevelCommand_AtHighRoundAddsOnlyItsOwnLevels()
+    {
+        // legacy ModData.AddSkillMaxLevel 会把当时的周目加成一起写进永久上限; 现在只记录指令本身的增量,
+        // 周目加成只在计算当前有效上限时叠加.
+        var externalSkill = TestContentFactory.CreateExternalSkill("dragon_palm");
+        var state = new GameState();
+        state.Adventure.SetRound(6);
+        var session = new GameSession(state, TestContentFactory.CreateRepository(externalSkills: [externalSkill]));
+
+        await session.StoryService.CommandDispatcher.ExecuteCallAsync(
+            new Game.Expressions.ExpressionParser().ParseCall("maxlevel('dragon_palm', 2, 'key')"));
+
+        Assert.Equal(2, session.Profile.GetSkillMaxLevelBonus("dragon_palm"));
+        Assert.Equal(10 + 2 + 6 / 2, session.SkillMaxLevelPolicy.GetMaxLevel(externalSkill));
+        Assert.Equal(12, session.SkillMaxLevelPolicy.GetExternalSkillMaxLevelWithoutRoundBonus("dragon_palm"));
+    }
+
+    [Fact]
     public void GetMaxLevel_ClampsProfileBonusToAbsoluteCap()
     {
         var externalSkill = TestContentFactory.CreateExternalSkill("dragon_palm");

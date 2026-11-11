@@ -111,6 +111,17 @@ current_time_slot !in ['子', '丑']
 | `current_map` | String | 当前地图 id。 |
 | `current_time_slot` | String | 当前时辰，以十二地支表示：`子`、`丑`、`寅`、`卯`、`辰`、`巳`、`午`、`未`、`申`、`酉`、`戌`、`亥`。 |
 | `friend_count` | Number | 正式队员数量，只计算可参战队友（members），不含跟随队友。 |
+| `hero_name` | String | 主角当前名字（队伍实例名优先，否则取人物定义名）；都没有时视为未定义。 |
+| `heroine_name` | String | 女主当前名字，规则同上。 |
+| `zhenlong_level` | Number | 珍珑棋局下一层的层数（档案层数 + 1）。 |
+
+### 文本占位符
+
+对白、说话人、选项文本里的 `$name$` 在显示前替换为同名变量的值，解析顺序与表达式变量相同：内建变量、当前执行上下文变量、剧情动态变量。字符串原样输出，数字按不变区域格式输出，布尔输出 `true`/`false`；解析不到的占位符原样保留。legacy 写法 `$MALE$`、`$FEMALE$`、`$ZHENLONG_LEVEL$` 分别是 `hero_name`、`heroine_name`、`zhenlong_level` 的别名。
+
+```text
+南贤：$hero_name$，你已经打通第 $zhenlong_level$ 层了。
+```
 
 ### 查询函数
 
@@ -244,6 +255,7 @@ maxlevel('野球拳', 5, 'reward.野球拳.mastery')
 | 调用 | 说明 | 别名 |
 | --- | --- | --- |
 | `join(character_id, definition_id?)` | 加入正式队伍；definition id 省略时使用 character id。 | — |
+| `transform(character_id, definition_id)` | 用另一份人物定义重建名册中已有的角色（如 `程英.初级` → `程英.高级`）。实例 id 与名册位置不变；新模板提供基础数值、自带武学和天赋，等级与经验、逐项基础属性取较高值，未分配属性点、已学武学（等级取较高值）、天赋、特技、装备中的内功与身上装备都保留，玩家改过的名字和头像保留，资源回满。角色不在名册中时报错；模板相同时无事发生。 | — |
 | `join_random(character_ids)` | 从非空候选列表随机加入一名角色。 | — |
 | `follow(character_id, definition_id?)` | 加入随队池；definition id 省略时使用 character id。 | — |
 | `leave(character_id)` | 正式队员离队并进入后备池。 | — |

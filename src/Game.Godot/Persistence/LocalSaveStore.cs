@@ -2,6 +2,7 @@ using System.Linq;
 using System.Text.Json;
 using Game.Application;
 using Game.Application.Mods;
+using Game.Application.Persistence;
 using Game.Core.Model;
 using Game.Core.Persistence;
 using Game.Core.Serialization;
@@ -83,12 +84,31 @@ public sealed class LocalSaveStore
 
 	private static string SaveCurrentSession(string savePath, string logName)
 	{
-		var envelope = new LocalSaveEnvelope(
-			LocalSaveEnvelope.CurrentVersion,
+		var envelope = LocalSaveEnvelope.Create(
 			Game.SaveGameService.CreateSave(),
 			DateTimeOffset.UtcNow,
 			Game.ActiveModLoadout.CreateVersionReferences());
+		WriteEnvelope(savePath, envelope);
+		Game.Logger.Info($"Saved {logName} to '{savePath}'.");
+		return savePath;
+	}
 
+	/// <summary>修改存档备注 (只改信封 metadata, 不动存档内容和保存时间)。备注为空表示清除。</summary>
+	public bool SetNote(LocalSaveId saveId, string? note)
+	{
+		var absolutePath = ResolveSavePath(saveId);
+		if (!TryReadEnvelope(absolutePath, out var envelope, out _) || envelope is null)
+		{
+			return false;
+		}
+
+		WriteEnvelope(absolutePath, envelope.WithNote(note));
+		Game.Logger.Info($"Updated note of {GetLogName(saveId)}.");
+		return true;
+	}
+
+	private static void WriteEnvelope(string savePath, LocalSaveEnvelope envelope)
+	{
 		var absolutePath = savePath;
 		var directoryPath = Path.GetDirectoryName(absolutePath);
 		if (string.IsNullOrWhiteSpace(directoryPath))
@@ -97,10 +117,7 @@ public sealed class LocalSaveStore
 		}
 
 		Directory.CreateDirectory(directoryPath);
-		var json = JsonSerializer.Serialize(envelope, GameJson.Default);
-		File.WriteAllText(absolutePath, json);
-		Game.Logger.Info($"Saved {logName} to '{absolutePath}'.");
-		return absolutePath;
+		File.WriteAllText(absolutePath, envelope.Serialize());
 	}
 
 	public bool TryLoad(LocalSaveId saveId, out LocalSaveEnvelope? envelope, out LocalSaveReadFailureReason failureReason)
@@ -140,37 +157,57 @@ public sealed class LocalSaveStore
 			return new LocalSaveSummary(saveId);
 		}
 
-		if (!TryReadEnvelope(ResolveSavePath(saveId), out var envelope, out var failureReason) || envelope is null)
+		var absolutePath = ResolveSavePath(saveId);
+		if (TryReadHeader(absolutePath) is { } header)
+		{
+			return BuildSummary(saveId, header.Metadata, header.SavedAtUtc, header.Mods);
+		}
+
+		// 旧格式 (v1~v3) 没有 metadata: 完整读取一次, 从 SaveGame 现算摘要.
+		if (!TryReadEnvelope(absolutePath, out var envelope, out var failureReason) || envelope is null)
 		{
 			return new LocalSaveSummary(saveId, HasSave: true, FailureReason: failureReason);
 		}
 
-		return BuildSummary(saveId, envelope);
+		return BuildSummary(saveId, envelope.ResolveMetadata(), envelope.SavedAtUtc, envelope.Mods);
 	}
 
-	private static LocalSaveSummary BuildSummary(LocalSaveId saveId, LocalSaveEnvelope envelope)
+	private static LocalSaveEnvelopeHeader? TryReadHeader(string absolutePath)
 	{
-		var saveGame = envelope.SaveGame;
-		var modComparison = AssessCompatibility(envelope);
-		var leaderId = saveGame.Party.MemberIds.FirstOrDefault();
-		var leader = leaderId is null
-			? saveGame.Characters.FirstOrDefault()
-			: saveGame.Characters.FirstOrDefault(character => string.Equals(character.Id, leaderId, StringComparison.Ordinal))
-			  ?? saveGame.Characters.FirstOrDefault();
+		try
+		{
+			using var stream = File.OpenRead(absolutePath);
+			var header = LocalSaveEnvelopeHeaderReader.TryRead(stream);
+			return header is { Version: >= 1 and <= LocalSaveEnvelope.CurrentVersion } ? header : null;
+		}
+		catch (IOException exception)
+		{
+			Game.Logger.Warning($"Save header read failed: {absolutePath}. {exception.Message}");
+			return null;
+		}
+	}
 
+	private static LocalSaveSummary BuildSummary(
+		LocalSaveId saveId,
+		SaveMetadata metadata,
+		DateTimeOffset? savedAtUtc,
+		IReadOnlyList<ModVersionReference>? mods)
+	{
+		var modComparison = Game.ActiveModLoadout.Compare(mods);
 		return new LocalSaveSummary(
 			saveId,
 			HasSave: true,
-			LeaderName: leader?.Name,
-			LeaderPortrait: leader?.Portrait,
-			PartyMemberCount: saveGame.Party.MemberIds.Count,
-			Round: saveGame.Adventure.Round,
-			Difficulty: saveGame.Adventure.Difficulty,
-			Clock: saveGame.Clock,
-			CurrentMapId: saveGame.Location.CurrentMapId,
-			SavedAtUtc: envelope.SavedAtUtc,
-			NoRegret: saveGame.Adventure.NoRegret,
-			PlayTimeSeconds: saveGame.PlayTimeSeconds,
+			LeaderName: metadata.LeaderName,
+			LeaderPortrait: metadata.LeaderPortrait,
+			PartyMemberCount: metadata.PartyMemberCount,
+			Round: metadata.Round,
+			Difficulty: metadata.Difficulty,
+			Clock: metadata.Clock,
+			CurrentMapId: metadata.CurrentMapId,
+			SavedAtUtc: savedAtUtc,
+			NoRegret: metadata.NoRegret,
+			PlayTimeSeconds: metadata.PlayTimeSeconds,
+			Note: metadata.Note,
 			ModWarningImpact: modComparison.WarningImpact,
 			ModDifferences: modComparison.Differences);
 	}
@@ -212,7 +249,7 @@ public sealed class LocalSaveStore
 		try
 		{
 			var json = File.ReadAllText(absolutePath);
-			var rawEnvelope = JsonSerializer.Deserialize<LocalSaveEnvelope>(json, GameJson.Default);
+			var rawEnvelope = LocalSaveEnvelope.Deserialize(json);
 			if (rawEnvelope is null)
 			{
 				Game.Logger.Warning($"Save file could not be deserialized: {absolutePath}");
@@ -281,6 +318,7 @@ public sealed record LocalSaveSummary(
 	DateTimeOffset? SavedAtUtc = null,
 	bool NoRegret = false,
 	long PlayTimeSeconds = 0,
+	string? Note = null,
 	SaveImpact ModWarningImpact = SaveImpact.None,
 	IReadOnlyList<ModLoadoutDifference>? ModDifferences = null,
 	LocalSaveReadFailureReason FailureReason = LocalSaveReadFailureReason.None)
@@ -288,11 +326,3 @@ public sealed record LocalSaveSummary(
 	public bool CanLoad => HasSave && FailureReason == LocalSaveReadFailureReason.None;
 }
 
-public sealed record LocalSaveEnvelope(
-	int Version,
-	SaveGame SaveGame,
-	DateTimeOffset SavedAtUtc,
-	IReadOnlyList<ModVersionReference>? Mods = null)
-{
-	public const int CurrentVersion = 3;
-}

@@ -9,7 +9,25 @@ internal sealed class BattleCarryoverService(GameSession session)
         ArgumentNullException.ThrowIfNull(state);
         foreach (var playerUnit in GetPlayerPartyUnits(state))
         {
-            playerUnit.Character.ApplyBattleCarryover(playerUnit.Hp, playerUnit.Mp, playerUnit.Rage);
+            var character = playerUnit.Character;
+            // 战斗内成长 (BattleGrowthResolver) 直接改了 CharacterInstance; 这里补上应用层升级路径的资源上限规则,
+            // 并桥接成应用层事件, 让 HUD、档案、成就等 session 订阅者看到战斗中的升级.
+            var leveledUp = playerUnit.ReceivesPersistentGrowth && character.Level > playerUnit.InitialCharacterLevel;
+            if (leveledUp)
+            {
+                session.CharacterResourceLimitPolicy.ClampBaseResourceStats(character);
+            }
+
+            character.ApplyBattleCarryover(playerUnit.Hp, playerUnit.Mp, playerUnit.Rage);
+            if (leveledUp)
+            {
+                session.Events.Publish(new CharacterLeveledUpEvent(
+                    character.Id,
+                    playerUnit.InitialCharacterLevel,
+                    character.Level));
+            }
+
+            session.Events.Publish(new CharacterChangedEvent(character.Id));
         }
     }
 

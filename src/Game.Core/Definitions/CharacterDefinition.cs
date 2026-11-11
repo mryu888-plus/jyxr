@@ -13,7 +13,7 @@ public sealed record CharacterDefinition(
     IReadOnlyList<InitialExternalSkillEntryDefinition> ExternalSkills,
     IReadOnlyList<InitialInternalSkillEntryDefinition> InternalSkills,
     [property: JsonPropertyName("talentIds")] IReadOnlyList<ContentReference<TalentDefinition>> TalentReferences,
-    [property: JsonPropertyName("equipmentIds")] IReadOnlyList<ContentReference<EquipmentDefinition>> EquipmentReferences,
+    IReadOnlyList<InitialEquipmentEntryDefinition> Equipment,
     int Level = 1,
     string? Portrait = null,
     string? Model = null,
@@ -32,7 +32,7 @@ public sealed record CharacterDefinition(
 
     [JsonIgnore]
     public IReadOnlyList<EquipmentDefinition> Equipments =>
-        EquipmentReferences.Select(static reference => reference.Definition).ToList();
+        Equipment.Select(static entry => entry.Equipment).ToList();
 
     [JsonIgnore]
     public IReadOnlyList<SpecialSkillDefinition> SpecialSkills =>

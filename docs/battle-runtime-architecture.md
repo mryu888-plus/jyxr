@@ -25,7 +25,7 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
 - `BattleUnitSelectorResolver` / `BattleSkillTargeting`：Effect 与技能空间目标；
 - `BattleExecutionScope`：Effect 链顺序和递归保护。
 
-`BattleUnit` 继续直接引用 `CharacterInstance`，战斗成长立即写入角色实例。
+`BattleUnit` 继续直接引用 `CharacterInstance`，战斗成长立即写入角色实例。哪些单位的成长属于持久角色由构建战斗的应用层决定：`BattleStateFactory` 只给我方阵营中的队伍角色实例设置 `BattleUnit.ReceivesPersistentGrowth`，引擎默认的经验资格判定只读取这个标记，宿主不再按阵营另行判断（构造时未指定时沿用“1 号阵营”）。战斗结束时 `BattleCarryoverService` 比较 `InitialCharacterLevel`，把战斗中的升级补发为应用层 `CharacterLeveledUpEvent`，并为每个结算的队伍角色发布 `CharacterChangedEvent`。网络对战需要的服务端权威校验不在当前范围内。
 
 ### 结算规则要点
 

@@ -10,7 +10,8 @@ internal sealed class BattleGrowthResolver(
     Func<CharacterInstance, int> characterMaxLevelResolver,
     Func<BattleUnit, bool> eligibilityResolver,
     double skillExperienceMultiplier = 1d,
-    double characterExperienceMultiplier = 1d)
+    double characterExperienceMultiplier = 1d,
+    Action<BattleUnit, int>? characterExperienceGained = null)
 {
     private const int SkillCastCharacterExperience = 3;
 
@@ -63,11 +64,14 @@ internal sealed class BattleGrowthResolver(
 
     private void ApplyCharacterExperience(BattleState state, BattleUnit unit)
     {
+        var experience = Scale(SkillCastCharacterExperience, characterExperienceMultiplier);
         var change = CharacterExperienceProgression.TryAddExperience(
             unit.Character,
-            Scale(SkillCastCharacterExperience, characterExperienceMultiplier),
+            experience,
             characterMaxLevelResolver(unit.Character),
             () => characterGrowTemplateResolver(unit.Character));
+        // legacy Role.AddExp: 人物获得的每一笔经验也喂给正在修炼的经书.
+        characterExperienceGained?.Invoke(unit, experience);
         if (!change.LeveledUp) return;
 
         unit.ClampResourcesToLimits();

@@ -9,6 +9,44 @@ namespace Game.Tests;
 public sealed class UniversalLearnRemoveCommandTests
 {
     [Fact]
+    public async Task ForgetSkill_FollowsPlayerRulesSeparatelyFromStoryRemove()
+    {
+        var external = TestContentFactory.CreateExternalSkill("external");
+        var equipped = TestContentFactory.CreateInternalSkill("equipped");
+        var spare = TestContentFactory.CreateInternalSkill("spare");
+        var special = CreateSpecialSkill("special");
+        var session = CreateSession(externalSkills: [external], internalSkills: [equipped, spare], specialSkills: [special]);
+        var dispatcher = session.StoryService.CommandDispatcher;
+        var parser = new ExpressionParser();
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("learn('hero', 'external', 1)"));
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("learn('hero', 'equipped', 1)"));
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("learn('hero', 'spare', 1)"));
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("learn('hero', 'special', 1)"));
+        var hero = session.State.Party.GetMember("hero");
+        session.CharacterService.EquipInternalSkill("hero", "equipped");
+        var changed = new List<CharacterChangedEvent>();
+        using var subscription = session.Events.Subscribe<CharacterChangedEvent>(changed.Add);
+
+        var equippedSkill = hero.GetInternalSkills().Single(skill => skill.Id == "equipped");
+        Assert.Equal(SkillForgetAvailability.EquippedInternalSkill, CharacterService.GetForgetAvailability(equippedSkill));
+        Assert.Throws<InvalidOperationException>(() => session.CharacterService.ForgetSkill(equippedSkill));
+
+        Assert.True(session.CharacterService.ForgetSkill(hero.GetInternalSkills().Single(skill => skill.Id == "spare")));
+        Assert.True(session.CharacterService.ForgetSkill(hero.GetExternalSkills().Single()));
+        Assert.True(session.CharacterService.ForgetSkill(hero.GetSpecialSkills().Single()));
+
+        Assert.Null(hero.GetInternalSkillLevel("spare"));
+        Assert.Null(hero.GetExternalSkillLevel("external"));
+        Assert.Empty(hero.GetSpecialSkills());
+        Assert.Equal(1, hero.GetInternalSkillLevel("equipped"));
+        Assert.Equal(3, changed.Count);
+
+        // 剧情强制移除不受玩家规则限制.
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("remove('hero', 'equipped')"));
+        Assert.Null(hero.GetInternalSkillLevel("equipped"));
+    }
+
+    [Fact]
     public async Task CommandsResolveAllCategoriesAndApplyLevelsOnlyToLevelledSkills()
     {
         var external = TestContentFactory.CreateExternalSkill("external");

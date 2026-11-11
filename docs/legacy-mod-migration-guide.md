@@ -45,9 +45,11 @@ join 程英 程英.高级
 
 如果两个同名 Definition 确实表示需要同时存在、分别成长或分别参与条件判断的角色实例，则继续使用不同的 `characterId`，例如 `袁承志` 与 `儿时袁承志`。不要仅因为显示名相同就合并实例身份。
 
-`definitionId` 只在首次创建时生效。若业务需要把已有角色从一个模板升级或转换为另一个模板，应建立独立的“角色转化/重建”用例，不能让 `join` 隐式完成。低级程英升级为高级模板只是这一通用规则的一个例子。
+`definitionId` 只在首次创建时生效。把已有角色从一个模板升级或转换为另一个模板时使用独立的 `transform(characterId, definitionId)`（`PartyService.Transform`），不要让 `join` 隐式完成；低级程英升级为高级模板就是这种情况。重建规则见 [游戏内容 DSL v3](game-dsl-v3.md) 的指令表。
 
 对话和选项的说话人属于展示解析；同一人物的不同模板共用显示身份时，也应优先写稳定 `characterId`。
+
+人物定义的初始装备字段为 `equipment`，每项可以是装备 id 字符串，也可以是 `{"id": "...", "affixes": [...]}`，后者的 `affixes` 成为这件装备实例的额外词条（对应 legacy 角色 `items/item` 的 `addition_trigger`）。旧数据里的 `equipmentIds` 应直接改名为 `equipment`，内容不变。
 
 ## 2. 地图剧情入口与一次性去重
 

@@ -12,7 +12,6 @@ public sealed partial class BattleEngine
 {
     internal const int TimelineTicksPerRound = BattleBuffInstance.TimelineTicksPerRound;
     private const double ActionGaugeThreshold = 100d;
-    private const int DefaultBattleExperienceTeam = 1;
     private static readonly GrowTemplateDefinition EmptyGrowTemplate = new()
     {
         Id = CharacterExperienceProgression.DefaultGrowTemplateId,
@@ -44,7 +43,8 @@ public sealed partial class BattleEngine
         Func<CharacterInstance, int>? characterMaxLevelResolver = null,
         Func<BattleUnit, bool>? battleExperienceEligibilityResolver = null,
         double battleSkillExperienceMultiplier = 1d,
-        double battleCharacterExperienceMultiplier = 1d)
+        double battleCharacterExperienceMultiplier = 1d,
+        Action<BattleUnit, int>? characterExperienceGained = null)
     {
         _damageCalculator = damageCalculator ?? new BattleDamageCalculator();
         _damageResolver = new BattleDamageResolver(this);
@@ -66,7 +66,8 @@ public sealed partial class BattleEngine
             characterMaxLevelResolver ?? DefaultCharacterMaxLevelResolver,
             battleExperienceEligibilityResolver ?? DefaultBattleExperienceEligibilityResolver,
             battleSkillExperienceMultiplier,
-            battleCharacterExperienceMultiplier);
+            battleCharacterExperienceMultiplier,
+            characterExperienceGained);
         _recoveryResolver = new BattleRecoveryResolver(
             (state, timing, unit, configure) => TriggerHooks(state, timing, unit, configure));
     }
@@ -160,7 +161,7 @@ public sealed partial class BattleEngine
 
     private static int DefaultCharacterMaxLevelResolver(CharacterInstance _) => CharacterLevelProgression.DefaultMaxLevel;
 
-    private static bool DefaultBattleExperienceEligibilityResolver(BattleUnit unit) => unit.Team == DefaultBattleExperienceTeam;
+    private static bool DefaultBattleExperienceEligibilityResolver(BattleUnit unit) => unit.ReceivesPersistentGrowth;
 
     private static int DefaultSkillMaxLevelResolver(SkillInstance skill) =>
         skill switch

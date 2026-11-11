@@ -24,7 +24,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -51,7 +51,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -81,7 +81,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(
             state,
             repository,
-            config: new GameConfig { MaxExternalSkillCount = 1 });
+            config: new GameConfig { SkillBookMode = SkillBookMode.Instant, MaxExternalSkillCount = 1 });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -106,7 +106,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -133,7 +133,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(
             state,
             repository,
-            config: new GameConfig { IgnoreSkillBookLevelLimit = true });
+            config: new GameConfig { SkillBookMode = SkillBookMode.Instant, IgnoreSkillBookLevelLimit = true });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -157,7 +157,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -187,7 +187,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(
             state,
             repository,
-            config: new GameConfig { MaxExternalSkillCount = 1 });
+            config: new GameConfig { SkillBookMode = SkillBookMode.Instant, MaxExternalSkillCount = 1 });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -218,7 +218,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -244,7 +244,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             externalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -268,7 +268,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             internalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -293,7 +293,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             internalSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -324,7 +324,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(
             state,
             repository,
-            config: new GameConfig { MaxInternalSkillCount = 1 });
+            config: new GameConfig { SkillBookMode = SkillBookMode.Instant, MaxInternalSkillCount = 1 });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -363,7 +363,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition],
             specialSkills: [skill],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -390,7 +390,7 @@ public sealed class ItemUseServiceTests
             growTemplates: [CreateDefaultGrowTemplate()],
             talents: [talent],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -430,7 +430,7 @@ public sealed class ItemUseServiceTests
             ],
             talents: [expensiveTalent],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -471,7 +471,7 @@ public sealed class ItemUseServiceTests
         var repository = TestContentFactory.CreateRepository(
             characters: [heroDefinition],
             items: [booster]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(booster);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -502,7 +502,7 @@ public sealed class ItemUseServiceTests
         var repository = TestContentFactory.CreateRepository(
             characters: [heroDefinition],
             items: [booster]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(booster);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -565,6 +565,7 @@ public sealed class ItemUseServiceTests
             repository,
             config: new GameConfig
             {
+                SkillBookMode = SkillBookMode.Instant,
                 MaxExternalSkillCount = 1,
                 MaxInternalSkillCount = 1,
             });
@@ -608,7 +609,7 @@ public sealed class ItemUseServiceTests
             growTemplates: [CreateDefaultGrowTemplate()],
             talents: [talent],
             items: [book]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
@@ -658,6 +659,7 @@ public sealed class ItemUseServiceTests
             repository,
             config: new GameConfig
             {
+                SkillBookMode = SkillBookMode.Instant,
                 MaxExternalSkillCount = 1,
                 MaxInternalSkillCount = 1,
             });
@@ -691,7 +693,7 @@ public sealed class ItemUseServiceTests
         var repository = TestContentFactory.CreateRepository(
             characters: [heroDefinition],
             equipment: [oldSword, newSword]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(newSword);
 
         var result = await session.ItemUseService.UseAsync(entry, hero.Id);
@@ -743,7 +745,7 @@ public sealed class ItemUseServiceTests
             characters: [heroDefinition, allyDefinition],
             storyScripts: [story],
             items: [item]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(item);
 
         var result = await session.ItemUseService.UseAsync(entry, ally.Id);
@@ -779,7 +781,7 @@ public sealed class ItemUseServiceTests
                     [new Segment("broken_story", [new CommandStep(new ExpressionParser().ParseCall("unsupported()"))])]),
             ],
             items: [item]);
-        var session = new GameSession(state, repository);
+        var session = new GameSession(state, repository, config: new GameConfig { SkillBookMode = SkillBookMode.Instant });
         var entry = state.Inventory.GetStack(item);
 
         await Assert.ThrowsAsync<ExpressionBindingException>(

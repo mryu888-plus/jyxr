@@ -15,6 +15,10 @@
 
 纯展示计算可归入 Presentation；领域规则、应用用例、序列化协议和资源路径解析各自保留在所属层。业务服务由 session 显式装配，UI 通过服务执行用例。
 
+诊断日志是横切能力：`IDiagnosticLogger`、`DiagnosticLogLevel`、扩展方法以及无宿主依赖的 `NullDiagnosticLogger` / `ConsoleDiagnosticLogger` 位于 `Game.Core.Diagnostics`，各层都能使用同一抽象；宿主实现（`GodotDiagnosticLogger`）留在 Game.Godot，由 bootstrap 注入 `GameSession`。
+
+`IContentRepository` 不提供全局静态入口：内容仓储随 MOD 组合装配进 `GameSession`，各服务经 session 取用；Godot 侧唯一的全局入口仍是 `Game`（当前 session 的访问门面），读档与重新装配 MOD 时随 session 一起替换，不在别处缓存仓储实例。
+
 ## 会话与持久化
 
 [GameSession](../src/Game.Application/GameSession.cs) 是普通实例，持有当前状态、档案、配置、设置、仓储、应用服务和事件总线。`Game` 是 Godot 的全局访问入口，不是领域单例。
@@ -24,6 +28,8 @@
 - 运行态角色、技能和装备可直接持有已解析 definition；持久化记录只保存稳定 ID 与实例状态。
 - [SaveGameService](../src/Game.Application/SaveGameService.cs) 恢复子状态后调用 `ReplaceState(...)`；档案加载使用 `ReplaceProfile(...)`。服务实例不重建，不长期缓存可被读档替换的状态。
 - 异步操作应保留发起时的状态身份，完成时确认仍属于同一状态；取消宿主等待与拒绝旧结果写入是两个不同职责。
+
+本地存档文件是 `LocalSaveEnvelope`（`Game.Application.Persistence`）。v4 起信封带 `Metadata`（队首名字与头像、队伍人数、周目、难度、时间、地图、无悔、游玩时长和玩家备注），序列化时 `Version`、`SavedAtUtc`、`Mods`、`Metadata` 都排在 `SaveGame` 之前；存档列表用 `LocalSaveEnvelopeHeaderReader` 流式读取文件开头，读到 `SaveGame` 属性名即停止，不反序列化完整存档。v1~v3 没有 metadata，列表回退到完整读取，从 `SaveGame` 现算摘要；读档本身对所有版本走完整读取。手动存档后可选填备注，`LocalSaveStore.SetNote` 只改信封 metadata（同时升级到 v4），不改存档内容与保存时间。
 
 本地路径由 [ModStoragePaths](../src/Game.Application/Mods/ModStoragePaths.cs) 统一生成。无悔规则独立于战斗难度，只允许自动存档，且不受普通自动存档开关限制。
 
@@ -35,13 +41,17 @@
 
 ## 角色、队伍与物品
 
-`Party` 是全局伙伴名册，`Members`、`Followers`、`Reserves` 三个池子中的实例互斥。入队和跟随优先移动既有实例；离队移入后备池，保留成长、装备与技能。存档角色记录覆盖整个名册。
+`Party` 是全局伙伴名册，`Members`、`Followers`、`Reserves` 三个池子中的实例互斥。入队和跟随优先移动既有实例；离队移入后备池，保留成长、装备与技能。存档角色记录覆盖整个名册。原版只有一支队伍，剧情、出战选择与存档都以这一份名册为准，因此不建模队伍 id 或多编队；出战阵容由每场战斗的选人结果决定，不是持久化的编队。`transform` 用新模板重建名册中已有的实例时，通过 `Party.Replace` 保持其所在池与顺序。
 
 `Inventory` 使用有序条目表示堆叠物品和独立装备；带实例差异的装备独立保存。`ChestState` 复用 Inventory，存取规则由 `ChestService` 执行。装备实例序列属于 GameState，由 `EquipmentInstanceFactory` 统一分配。
 
 背包、储物箱与洗练选装共用 `ItemTagBar`，标签来自当前候选物品的 definition。`ItemCatalogFilter` 在 Presentation 中管理分类、标签与匹配规则；数据刷新保留仍有效的标签，切换分类或标签消失时回到全部。洗练选装只展示装备标签，包含白装堆叠与独立装备。
 
+装备随机词条（掉落、珍珑与洗练候选）复刻 legacy `ItemInstance.GenerateRandomTrigger()`：匹配等级的表合并后，由 `SequentialTrialSelector` 按配置顺序逐项以 `weight / totalWeight` 试投，整轮未命中则重来，因此表中靠前的选项实际概率高于权重占比，调整词条表顺序会改变掉落分布。去重同样沿用原版：没有候选池的词条按类型去重（随机属性，外功、内功、招式、奥义加成各自最多一条），有候选池的天赋与速度词条按具体目标去重，武器加成按武器类型区分；目标信息仍保存在原子 affix 中。
+
 `EquipmentRefinementService` 编排选装、操作选择、付费候选与结果应用，显式区分新增、替换和退出。每次候选消耗 1 元宝、8 选 1；附加词条按组计数，最多增加至 4 条，满额仍可替换。白装确认新增后才从堆叠拆出一件实例；异步选择完成后统一校验原状态、档案、背包条目和词条快照，拒绝失效结果。
+
+武学经书默认按原版修炼（`GameConfig.SkillBookMode = practice`）：对角色使用经书是把它装进角色的修炼位（`CharacterInstance.PracticeBook`，存档字段 `PracticeBookItemId`），原来那本放回背包；此后角色获得的每一笔人物经验——战斗中出招（引擎 `characterExperienceGained` 回调）、战斗结算、剧情 `grant_exp`/`level_up`——都由 `PracticeBookService` 同时加到经书武学上：没学过的先以 1 级学会（受外功/内功数量上限限制），只要当前等级不超过经书等级就继续加 `经验 + 悟性/30`，仍受武学精通上限约束；`IgnoreSkillBookLevelLimit` 去掉经书等级这道限制。`instant` 模式保留“使用即学会到书本等级”的旧行为，不使用修炼位。特技书、天赋书始终是消耗品。
 
 背包选人界面支持选择使用数量。`ItemUseService` 对可消耗的场外堆叠物品逐件校验、应用效果和扣除库存，返回实际使用数量；条件不再满足或出现未经确认的失效效果时停止，已完成的使用保留。装备、不消耗的物品及剧情效果仅允许单次使用，战斗内物品仍遵循战斗行动规则。
 

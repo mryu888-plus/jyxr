@@ -83,6 +83,26 @@ public sealed class Party
         return true;
     }
 
+    /// <summary>用同 id 的新实例替换名册里的旧实例，保持所在位置（正式队员 / 跟随 / 后备）和顺序。</summary>
+    public void Replace(CharacterInstance replacement)
+    {
+        ArgumentNullException.ThrowIfNull(replacement);
+        if (!TryGetPlacement(replacement.Id, out _, out var placement))
+        {
+            throw new InvalidOperationException($"Character '{replacement.Id}' is not in the party roster.");
+        }
+
+        if (placement == PartyPlacement.Member)
+        {
+            var index = _members.IndexOf(replacement.Id);
+            _members.RemoveAt(index);
+            _members.Insert(index, replacement.Id, replacement);
+            return;
+        }
+
+        GetPool(placement)[replacement.Id] = replacement;
+    }
+
     public bool MoveToMembers(string characterId) => MoveExisting(characterId, PartyPlacement.Member);
 
     public bool MoveToFollowers(string characterId) => MoveExisting(characterId, PartyPlacement.Follower);

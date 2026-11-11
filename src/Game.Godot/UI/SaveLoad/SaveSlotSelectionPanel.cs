@@ -1,4 +1,5 @@
 using Game.Application;
+using Game.Application.Persistence;
 using Game.Godot.Persistence;
 using Godot;
 
@@ -180,8 +181,47 @@ public partial class SaveSlotSelectionPanel : JyPanel
 
 		_saveStore.SaveCurrentSession(saveId);
 		Game.Audio.PlaySfx("音效.装备");
+		if (saveId.Kind == LocalSaveKind.Manual && await PromptNoteAsync(saveId) is { } note)
+		{
+			_saveStore.SetNote(saveId, note);
+		}
+
 		UIRoot.Instance.ShowToast($"已写入{saveId.Title}");
 		UIRoot.Instance.CloseMainPanel();
+	}
+
+	/// <summary>手动存档后可选填一句备注 (显示在存档卡片上)。取消或留空不写备注。</summary>
+	private async Task<string?> PromptNoteAsync(LocalSaveId saveId)
+	{
+		var input = new LineEdit
+		{
+			PlaceholderText = "可留空，例如：打败梅超风前",
+			MaxLength = SaveMetadata.MaxNoteLength,
+			CustomMinimumSize = new Vector2(640, 0),
+		};
+		var dialog = new ConfirmationDialog
+		{
+			Title = $"{saveId.Title}备注",
+			OkButtonText = "保存备注",
+			CancelButtonText = "跳过",
+		};
+		dialog.AddChild(input);
+		dialog.RegisterTextEnter(input);
+		AddChild(dialog);
+		var completion = new TaskCompletionSource<string?>();
+		dialog.Confirmed += () => completion.TrySetResult(input.Text);
+		dialog.Canceled += () => completion.TrySetResult(null);
+		dialog.PopupCentered();
+		input.GrabFocus();
+		try
+		{
+			var note = await completion.Task;
+			return string.IsNullOrWhiteSpace(note) ? null : note;
+		}
+		finally
+		{
+			dialog.QueueFree();
+		}
 	}
 
 	private async Task DeleteAsync(LocalSaveId saveId)

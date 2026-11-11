@@ -57,42 +57,80 @@ public sealed class StoryCommandLineService
 
     private static IReadOnlyList<ConsoleToken> Tokenize(string line)
     {
+        // 空白分隔参数; 引号包住的是字符串; [ ... ] 是列表参数, 内部保留原文 (含引号和空白), 交给表达式解析器.
         var tokens = new List<ConsoleToken>();
         var current = new StringBuilder();
         char quote = '\0';
         var wasQuoted = false;
+        var listDepth = 0;
         foreach (var ch in line)
         {
+            if (listDepth > 0)
+            {
+                current.Append(ch);
+                if (quote != '\0')
+                {
+                    if (ch == quote) quote = '\0';
+                    continue;
+                }
+
+                if (ch is '\'' or '"') quote = ch;
+                else if (ch == '[') listDepth++;
+                else if (ch == ']' && --listDepth == 0) Flush(tokens, current, ref wasQuoted, isList: true);
+                continue;
+            }
+
             if (ch is '\'' or '"')
             {
                 if (quote == '\0') { quote = ch; wasQuoted = true; continue; }
                 if (quote == ch) { quote = '\0'; continue; }
             }
+            if (ch == '[' && quote == '\0' && current.Length == 0 && !wasQuoted)
+            {
+                listDepth = 1;
+                current.Append(ch);
+                continue;
+            }
             if (char.IsWhiteSpace(ch) && quote == '\0') { Flush(tokens, current, ref wasQuoted); continue; }
             current.Append(ch);
         }
         if (quote != '\0') throw new InvalidOperationException("命令行引号未闭合。");
+        if (listDepth > 0) throw new InvalidOperationException("命令行列表括号未闭合。");
         Flush(tokens, current, ref wasQuoted);
         return tokens;
     }
 
-    private static void Flush(List<ConsoleToken> tokens, StringBuilder current, ref bool wasQuoted)
+    private static void Flush(List<ConsoleToken> tokens, StringBuilder current, ref bool wasQuoted, bool isList = false)
     {
         if (current.Length == 0 && !wasQuoted) return;
-        tokens.Add(new ConsoleToken(current.ToString(), wasQuoted));
+        tokens.Add(new ConsoleToken(current.ToString(), wasQuoted, isList));
         current.Clear();
         wasQuoted = false;
     }
 
-    private static ExpressionValue ParseToken(ConsoleToken token)
+    private ExpressionValue ParseToken(ConsoleToken token)
     {
+        if (token.IsList) return ParseListLiteral(token.Text);
         if (token.WasQuoted) return ExpressionValue.FromString(token.Text);
         if (bool.TryParse(token.Text, out var boolean)) return ExpressionValue.FromBoolean(boolean);
         if (double.TryParse(token.Text, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)) return ExpressionValue.FromNumber(number);
         return ExpressionValue.FromString(token.Text);
     }
 
-    private readonly record struct ConsoleToken(string Text, bool WasQuoted);
+    private ExpressionValue ParseListLiteral(string text)
+    {
+        var expression = _parser.ParseExpression(text, "debug console list");
+        return ToLiteralValue(expression.Root);
+    }
+
+    private static ExpressionValue ToLiteralValue(ExpressionSyntax syntax) => syntax switch
+    {
+        LiteralExpressionSyntax literal => literal.Value,
+        ListExpressionSyntax list => ExpressionValue.FromList(list.Items.Select(ToLiteralValue).ToArray()),
+        _ => throw new InvalidOperationException("命令行列表只能包含字面量，例如 [\"小还丹\", \"大还丹\"]。"),
+    };
+
+    private readonly record struct ConsoleToken(string Text, bool WasQuoted, bool IsList = false);
 }
 
 public sealed record StoryCommandInvocation(string Name, IReadOnlyList<ExpressionValue> Arguments);

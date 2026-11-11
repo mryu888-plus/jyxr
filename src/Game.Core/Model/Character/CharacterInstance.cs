@@ -40,6 +40,9 @@ public sealed class CharacterInstance
     public List<ExternalSkillInstance> ExternalSkills { get; } = [];
     public List<InternalSkillInstance> InternalSkills { get; } = [];
     public string? EquippedInternalSkillId { get; private set; }
+
+    /// <summary>正在修炼的武学经书 (legacy 第四个装备位)。经书只在背包和这里之间移动, 不参与属性快照。</summary>
+    public ItemDefinition? PracticeBook { get; private set; }
     public Dictionary<EquipmentSlotType, EquipmentInstance> EquippedItems { get; } = [];
 
     public void GrantExperience(int experience)
@@ -64,6 +67,13 @@ public sealed class CharacterInstance
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(level, 1);
         Level = level;
+    }
+
+    public ItemDefinition? SetPracticeBook(ItemDefinition? book)
+    {
+        var previous = PracticeBook;
+        PracticeBook = book;
+        return previous;
     }
 
     public void SetAiType(BattleAiType aiType)

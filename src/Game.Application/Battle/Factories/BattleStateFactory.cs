@@ -148,7 +148,8 @@ internal sealed class BattleStateFactory
                 character,
                 participant.Team,
                 participant.Position,
-                participant.Facing));
+                participant.Facing,
+                receivesPersistentGrowth: participant.Team == PlayerTeam && IsPartyCharacterInstance(character)));
         }
 
         foreach (var (participant, index) in battle.RandomParticipants.Select(static (participant, index) => (participant, index)))
@@ -160,7 +161,8 @@ internal sealed class BattleStateFactory
                 character,
                 participant.Team,
                 participant.Position,
-                participant.Facing));
+                participant.Facing,
+                receivesPersistentGrowth: false));
         }
 
         var state = new BattleState(new BattleGrid(GridWidth, GridHeight), units, ruleSettings);
@@ -243,7 +245,8 @@ internal sealed class BattleStateFactory
         CharacterInstance character,
         int team,
         GridPosition position,
-        int facing) =>
+        int facing,
+        bool receivesPersistentGrowth) =>
         new(
             id,
             character,
@@ -252,5 +255,6 @@ internal sealed class BattleStateFactory
             facing <= 0 ? BattleFacing.Left : BattleFacing.Right,
             hp: character.CurrentHp,
             mp: character.CurrentMp,
-            rage: character.CurrentRage);
+            rage: character.CurrentRage,
+            receivesPersistentGrowth: receivesPersistentGrowth);
 }

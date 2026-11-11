@@ -539,7 +539,7 @@ public sealed class ContentLoadingTests
                     }
                   ],
                   "talentIds": [],
-                  "equipmentIds": [],
+                  "equipment": [],
                   "specialSkillIds": []
                 }
               ],
@@ -582,7 +582,7 @@ public sealed class ContentLoadingTests
                   "externalSkills": [],
                   "internalSkills": [],
                   "talentIds": [],
-                  "equipmentIds": [],
+                  "equipment": [],
                   "specialSkillIds": []
                 }
               ],
@@ -1106,7 +1106,7 @@ public sealed class ContentLoadingTests
                   "externalSkills": [],
                   "internalSkills": [],
                   "talentIds": [],
-                  "equipmentIds": [],
+                  "equipment": [],
                   "portrait": "head/hero_knight",
                   "model": "hero_knight_model"
                 }

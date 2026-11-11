@@ -1,4 +1,4 @@
-namespace Game.Application;
+namespace Game.Core.Diagnostics;
 
 public sealed class ConsoleDiagnosticLogger : IDiagnosticLogger
 {
