@@ -62,8 +62,8 @@ public sealed class CharacterTransformationTests
         Assert.Equal(8, after.GetExternalSkillLevel("finger"));
         Assert.Equal(7, after.GetExternalSkillLevel("learned"));
         Assert.Equal("heart", after.EquippedInternalSkillId);
-        Assert.True(after.HasTalent("old_talent"));
-        Assert.True(after.HasTalent("new_talent"));
+        Assert.True(after.HasLearnedTalent("old_talent"));
+        Assert.True(after.HasLearnedTalent("new_talent"));
         Assert.Equal(300, after.CurrentHp);
     }
 
