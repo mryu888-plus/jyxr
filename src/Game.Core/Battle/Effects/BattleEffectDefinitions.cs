@@ -219,4 +219,10 @@ public sealed record CustomAbilityBattleEffectDefinition(
 
     internal int? EstimateAbilityDamage(BattleAbilityDamageEstimateContext context) =>
         Invocation.EstimateAbilityDamage?.Invoke(context);
+
+    internal IEnumerable<BattleAbilityBuffPreview> PreviewAbilityBuffs(BattleAbilityDamageEstimateContext context) =>
+        Invocation.PreviewAbilityBuffs?.Invoke(context) ?? [];
+
+    internal int EstimateAbilitySourceDamage(BattleAbilityDamageEstimateContext context) =>
+        Invocation.EstimateSourceDamage?.Invoke(context) ?? 0;
 }

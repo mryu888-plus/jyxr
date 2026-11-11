@@ -16,5 +16,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Game.Tests/Game.Tests.csproj" />
     <Project Path="tests/Game.Expressions.Tests/Game.Expressions.Tests.csproj" />
+    <Project Path="tests/Game.AiBenchmarks/Game.AiBenchmarks.csproj" />
   </Folder>
 </Solution>

@@ -23,4 +23,9 @@ public sealed class HeavenAndEarthSameLifespanBattleEffectHandler
         BattleAbilityDamageEstimateContext context,
         HeavenAndEarthSameLifespanBattleEffectParameters parameters) =>
         (int)(context.Source.Hp * 0.75d);
+
+    public override int EstimateSourceDamage(
+        BattleAbilityDamageEstimateContext context,
+        HeavenAndEarthSameLifespanBattleEffectParameters parameters) =>
+        context.Source.Hp;
 }

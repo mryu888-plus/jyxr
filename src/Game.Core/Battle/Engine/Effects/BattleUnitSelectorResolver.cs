@@ -1,3 +1,5 @@
+using Game.Core.Model;
+
 namespace Game.Core.Battle;
 
 internal static class BattleUnitSelectorResolver
@@ -5,6 +7,19 @@ internal static class BattleUnitSelectorResolver
     public static IReadOnlyList<BattleUnit> Resolve(
         BattleState state,
         BattleUnit contextUnit,
+        BattleUnit source,
+        IReadOnlyList<BattleUnit> primaryTargets,
+        BattleUnitSelectorDefinition selector) =>
+        Resolve(state, contextUnit, contextUnit.Position, source, primaryTargets, selector);
+
+    /// <summary>
+    /// 按指定锚点位置解析选择器。执行时锚点就是上下文单位的当前位置；
+    /// 技能预览（AI 评估移动后施放）用移动目的地作为锚点。
+    /// </summary>
+    public static IReadOnlyList<BattleUnit> Resolve(
+        BattleState state,
+        BattleUnit contextUnit,
+        GridPosition anchorPosition,
         BattleUnit source,
         IReadOnlyList<BattleUnit> primaryTargets,
         BattleUnitSelectorDefinition selector) =>
@@ -24,16 +39,19 @@ internal static class BattleUnitSelectorResolver
             NearbyAlliesBattleUnitSelectorDefinition nearbyAllies => state.GetLivingUnits()
                 .Where(unit => unit.Team == contextUnit.Team)
                 .Where(unit => nearbyAllies.IncludeSelf || !string.Equals(unit.Id, contextUnit.Id, StringComparison.Ordinal))
-                .Where(unit => unit.Position.ManhattanDistanceTo(contextUnit.Position) <= nearbyAllies.Radius)
+                .Where(unit => ResolvePosition(unit, contextUnit, anchorPosition).ManhattanDistanceTo(anchorPosition) <= nearbyAllies.Radius)
                 .ToList(),
             NearbyEnemiesBattleUnitSelectorDefinition nearbyEnemies => state.GetLivingUnits()
                 .Where(unit => unit.Team != contextUnit.Team)
-                .Where(unit => unit.Position.ManhattanDistanceTo(contextUnit.Position) <= nearbyEnemies.Radius)
+                .Where(unit => ResolvePosition(unit, contextUnit, anchorPosition).ManhattanDistanceTo(anchorPosition) <= nearbyEnemies.Radius)
                 .ToList(),
             ExplicitUnitsBattleUnitSelectorDefinition => throw new InvalidOperationException(
                 "Explicit unit selectors require runtime member ids."),
             _ => throw new NotSupportedException($"Unsupported battle target selector '{selector.GetType().Name}'."),
         };
+
+    private static GridPosition ResolvePosition(BattleUnit unit, BattleUnit contextUnit, GridPosition anchorPosition) =>
+        ReferenceEquals(unit, contextUnit) ? anchorPosition : unit.Position;
 
     public static IReadOnlyList<BattleUnit> ResolveScope(
         BattleState state,

@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Game.AiBenchmarks\AiBattleScenarios.cs" Link="Battle\AiBattleScenarios.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\..\src\Game.Content\SampleData\**\*.json" Link="SampleData\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

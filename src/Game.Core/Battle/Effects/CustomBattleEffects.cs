@@ -34,7 +34,27 @@ public abstract class CustomAbilityBattleEffectHandler<TParameters>
     public virtual int? EstimateDamage(
         BattleAbilityDamageEstimateContext context,
         TParameters parameters) => null;
+
+    /// <summary>
+    /// 预估一次施放让施法者自身承受的气血代价（如以命相搏类技能的自伤）。
+    /// 调用时 <see cref="BattleAbilityDamageEstimateContext.Target"/> 即施法者。
+    /// </summary>
+    public virtual int EstimateSourceDamage(
+        BattleAbilityDamageEstimateContext context,
+        TParameters parameters) => 0;
+
+    /// <summary>预览该效果对 <see cref="BattleAbilityDamageEstimateContext.Target"/> 预期施加的状态，供 AI 评估非伤害收益。</summary>
+    public virtual IEnumerable<BattleAbilityBuffPreview> PreviewBuffs(
+        BattleAbilityDamageEstimateContext context,
+        TParameters parameters) => [];
 }
+
+/// <summary>自定义能力效果预期施加的状态（期望等级与回合数，及施加概率）。</summary>
+public sealed record BattleAbilityBuffPreview(
+    string BuffId,
+    double Chance,
+    int Level,
+    int Duration);
 
 public sealed record BattleAbilityDamageEstimateContext(
     BattleState State,
@@ -201,7 +221,9 @@ public sealed class CustomBattleEffectRegistry
                         $"Custom battle effect '{effectId}' requires capability '{typeof(TContext).Name}'."),
                     parsedParameters),
                 ExecuteAbility: null,
-                EstimateAbilityDamage: null);
+                EstimateAbilityDamage: null,
+                PreviewAbilityBuffs: null,
+                EstimateSourceDamage: null);
         }
     }
 
@@ -230,7 +252,9 @@ public sealed class CustomBattleEffectRegistry
                 SupportedTimings: new HashSet<HookTiming>(),
                 ExecuteHook: null,
                 ExecuteAbility: context => handler.Execute(context, parsedParameters),
-                EstimateAbilityDamage: context => handler.EstimateDamage(context, parsedParameters));
+                EstimateAbilityDamage: context => handler.EstimateDamage(context, parsedParameters),
+                PreviewAbilityBuffs: context => handler.PreviewBuffs(context, parsedParameters),
+                EstimateSourceDamage: context => handler.EstimateSourceDamage(context, parsedParameters));
         }
     }
 }
@@ -240,7 +264,9 @@ internal sealed record CustomBattleEffectInvocation(
     IReadOnlySet<HookTiming> SupportedTimings,
     Action<BattleHookContext>? ExecuteHook,
     Action<IBattleAbilityEffectContext>? ExecuteAbility,
-    Func<BattleAbilityDamageEstimateContext, int?>? EstimateAbilityDamage)
+    Func<BattleAbilityDamageEstimateContext, int?>? EstimateAbilityDamage,
+    Func<BattleAbilityDamageEstimateContext, IEnumerable<BattleAbilityBuffPreview>>? PreviewAbilityBuffs,
+    Func<BattleAbilityDamageEstimateContext, int>? EstimateSourceDamage)
 {
     public bool SupportsAbility => ExecuteAbility is not null;
 }

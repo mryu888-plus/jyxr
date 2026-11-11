@@ -44,16 +44,24 @@ public static class BattleSkillTargeting
 
         return state.Units
             .Where(targetUnit => targetUnit.IsAlive && impactedPositions.Contains(targetUnit.Position))
-            .Where(targetUnit => IsCaster(source, targetUnit)
-                ? skill.CanImpactSelf
-                : ShouldIncludeTarget(state, source, targetUnit, skill))
+            .Where(targetUnit => CanAffect(state, source, targetUnit, skill))
             .ToList();
     }
 
     /// <summary>
+    /// 覆盖范围内的存活单位是否成为技能的主要目标；技能执行与 AI 预览共用这一判定。
     /// CanImpactSelf 表达“施法者本人一定承受这个技能”（legacy HitSelf）：施法者在覆盖范围内时直接成为目标，
     /// 不再经过阵营、难度和 AvoidFriendlyFire 的友伤过滤；其它友军仍按友伤规则判定。
     /// </summary>
+    public static bool CanAffect(
+        BattleState state,
+        BattleUnit source,
+        BattleUnit target,
+        SkillInstance skill) =>
+        IsCaster(source, target)
+            ? skill.CanImpactSelf
+            : ShouldIncludeTarget(state, source, target, skill);
+
     private static bool IsCaster(BattleUnit source, BattleUnit target) =>
         string.Equals(target.Id, source.Id, StringComparison.Ordinal);
 

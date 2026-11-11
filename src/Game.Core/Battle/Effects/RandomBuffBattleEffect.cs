@@ -37,4 +37,16 @@ public sealed class RandomBuffBattleEffectHandler
             context.ApplyBuff(target, parameters.BuffId, level, duration);
         }
     }
+
+    public override IEnumerable<BattleAbilityBuffPreview> PreviewBuffs(
+        BattleAbilityDamageEstimateContext context,
+        RandomBuffBattleEffectParameters parameters)
+    {
+        // 期望值: 等级、回合数取随机区间中点
+        yield return new BattleAbilityBuffPreview(
+            parameters.BuffId,
+            parameters.Chance,
+            (parameters.MinimumLevel + parameters.MaximumLevel + 1) / 2,
+            (parameters.MinimumDuration + parameters.MaximumDuration + 1) / 2);
+    }
 }

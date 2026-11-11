@@ -2,31 +2,44 @@ namespace Game.Core.Battle;
 
 internal sealed class AttackOnlyBattleAiPolicy : IBattleAiPolicy
 {
-    public IReadOnlyList<BattleTurnCandidate> GenerateCandidates(
-        BattleState state,
-        BattleUnit unit,
+    public IEnumerable<BattleTurnCandidate> GenerateCandidates(
+        BattleAiEvaluationContext context,
         BattleTurnCandidateGenerator generator)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(generator);
+        return GenerateCore(context, generator);
+    }
 
-        var attackCandidates = generator.Generate(
-            state,
-            unit.Id,
-            new BattleTurnCandidateGenerationOptions(
-                AllowSkillCandidates: true,
-                AllowRestCandidates: false,
-                AllowMovement: true));
-        if (attackCandidates.Count > 0)
+    private static IEnumerable<BattleTurnCandidate> GenerateCore(
+        BattleAiEvaluationContext context,
+        BattleTurnCandidateGenerator generator)
+    {
+        var hasAttack = false;
+        foreach (var candidate in generator.Enumerate(
+                     context,
+                     new BattleTurnCandidateGenerationOptions(
+                         AllowSkillCandidates: true,
+                         AllowRestCandidates: false,
+                         AllowMovement: true)))
         {
-            return attackCandidates;
+            hasAttack = true;
+            yield return candidate;
         }
 
-        return generator.Generate(
-            state,
-            unit.Id,
-            new BattleTurnCandidateGenerationOptions(
-                AllowSkillCandidates: false,
-                AllowRestCandidates: true,
-                AllowMovement: true));
+        if (hasAttack)
+        {
+            yield break;
+        }
+
+        foreach (var candidate in generator.Enumerate(
+                     context,
+                     new BattleTurnCandidateGenerationOptions(
+                         AllowSkillCandidates: false,
+                         AllowRestCandidates: true,
+                         AllowMovement: true)))
+        {
+            yield return candidate;
+        }
     }
 }

@@ -24,26 +24,25 @@ public sealed class BasicEnemyBattleAgent : IBattleAgent
         var isLowHp = unit.MaxHp > 0 && (double)unit.Hp / unit.MaxHp < 0.3d;
         var restRecovery = ResolveRestRecovery(unit);
         var policy = _policyResolver.Resolve(unit.AiType);
-        var generatedCandidates = policy.GenerateCandidates(state, unit, _candidateGenerator);
-        if (unit.AiType != BattleAiType.RestOnly &&
-            generatedCandidates.All(candidate => candidate.Plan.MainAction.Kind != BattleMainActionKind.CastSkill) &&
-            _candidateGenerator.ShouldUseSupportSpecialSkill())
-        {
-            var supportPositionCandidate = SelectBestRestPosition(generatedCandidates, isLowHp);
-            if (supportPositionCandidate is not null &&
-                _candidateGenerator.CreateRandomSupportSpecialSkillPlan(
-                    state,
-                    unit.Id,
-                    supportPositionCandidate.Plan.MoveDestination) is { } supportPlan)
-            {
-                return supportPlan;
-            }
-        }
+        var context = _candidateGenerator.CreateEvaluationContext(state, unitId);
 
+        // 单遍流式择优: 同时记录最佳候选、最佳休息落点、是否存在攻击候选, 不物化候选集合
         BattleTurnCandidate? bestCandidate = null;
         var bestScore = double.NegativeInfinity;
-        foreach (var candidate in generatedCandidates)
+        BattleTurnCandidate? bestRestCandidate = null;
+        var hasSkillCandidate = false;
+        foreach (var candidate in policy.GenerateCandidates(context, _candidateGenerator))
         {
+            if (candidate.Plan.MainAction.Kind == BattleMainActionKind.CastSkill)
+            {
+                hasSkillCandidate = true;
+            }
+            else if (candidate.Plan.MainAction.Kind == BattleMainActionKind.Rest &&
+                     (bestRestCandidate is null || IsBetterRestPosition(candidate, bestRestCandidate, isLowHp)))
+            {
+                bestRestCandidate = candidate;
+            }
+
             var score = ScoreCandidate(candidate, isLowHp, restRecovery);
             if (bestCandidate is null || IsBetterCandidate(candidate, score, bestCandidate, bestScore, isLowHp))
             {
@@ -52,13 +51,24 @@ public sealed class BasicEnemyBattleAgent : IBattleAgent
             }
         }
 
+        if (unit.AiType != BattleAiType.RestOnly &&
+            !hasSkillCandidate &&
+            _candidateGenerator.ShouldUseSupportSpecialSkill() &&
+            bestRestCandidate is not null &&
+            _candidateGenerator.CreateRandomSupportSpecialSkillPlan(
+                context,
+                bestRestCandidate.Plan.MoveDestination) is { } supportPlan)
+        {
+            return supportPlan;
+        }
+
         return bestCandidate?.Plan ??
             new BattleTurnPlan(unitId, unit.Position, BattleMainActionPlan.Rest());
     }
 
     private static double ScoreCandidate(BattleTurnCandidate candidate, bool isLowHp, int restRecovery)
     {
-        var score = (double)(candidate.EnemyDamage - candidate.AllyDamage);
+        var score = (double)(candidate.EnemyDamage - candidate.AllyDamage) + candidate.UtilityScore;
         score += candidate.EnemyKills * 5000d;
         score -= candidate.AllyKills * 8000d;
         if (candidate.EnemyHitCount > 1)
@@ -161,25 +171,6 @@ public sealed class BasicEnemyBattleAgent : IBattleAgent
             candidatePlan.MainAction.SkillId ?? string.Empty,
             currentBestPlan.MainAction.SkillId ?? string.Empty,
             StringComparison.Ordinal) < 0;
-    }
-
-    private static BattleTurnCandidate? SelectBestRestPosition(
-        IReadOnlyList<BattleTurnCandidate> candidates,
-        bool isLowHp)
-    {
-        BattleTurnCandidate? bestCandidate = null;
-        foreach (var candidate in candidates)
-        {
-            if (candidate.Plan.MainAction.Kind != BattleMainActionKind.Rest ||
-                bestCandidate is not null && !IsBetterRestPosition(candidate, bestCandidate, isLowHp))
-            {
-                continue;
-            }
-
-            bestCandidate = candidate;
-        }
-
-        return bestCandidate;
     }
 
     private static bool IsBetterRestPosition(

@@ -9,4 +9,5 @@ public sealed record BattleTurnCandidate(
     int AllyKills,
     int EnemyHitCount,
     int DistanceToNearestEnemy,
-    int MoveCost);
+    int MoveCost,
+    double UtilityScore = 0d);

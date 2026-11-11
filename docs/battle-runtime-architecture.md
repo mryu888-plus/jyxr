@@ -17,7 +17,7 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
 
 `BattleEngine` 保留命令入口和战斗时间线，具体职责下沉到：
 
-- `BattleSkillExecutor`：技能计划；
+- `BattleSkillExecutor`：技能计划（执行与 AI 预览共用同一计划）；
 - `BattleEffectExecutor`：统一 Effect 执行；
 - 各状态 resolver：伤害、恢复、Buff、资源与成长；
 - `BattleHookRunner`：角色与 Buff Hook 的收集、稳定顺序和 Trace；
@@ -47,6 +47,17 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
   "value": {"op": "add", "delta": 1}
 }
 ```
+
+`BattleEngine.PreviewSkillExecution` 按与 `CastSkill` 相同的 `BattleSkillExecutionPlan` 预览一次施放：施法者视为站在指定落点，主要目标与执行时同样经 `BattleSkillTargeting.CanAffect` 过滤，Effect 选择器（`all_units`、`all_enemies`、`nearby_*` 等）以落点为锚解析出实际作用单位；结果是逐单位的伤害、回复、施加/移除状态、怒气与集气变化，不修改状态、不消耗随机数。自定义能力效果可通过 `EstimateDamage`（对目标伤害）、`EstimateSourceDamage`（施法者自身代价，如天地同寿、同归剑法）与 `PreviewBuffs`（预期施加的状态，如飞星术的随机中毒）参与预览。
+
+## AI
+
+- `BasicEnemyBattleAgent` 每次决策创建一个 `BattleAiEvaluationContext`：存活单位位置索引、敌方位置、可达格、（技能，目标）伤害估算缓存和复用缓冲区。它只覆盖一次决策，不跨决策或跨战斗保存可变状态。
+- `IBattleAiPolicy` 流式产出候选，代理单遍遍历并同时记录最佳候选、最佳休息落点和是否存在攻击候选，不物化候选集合。
+- `BattleTurnCandidateGenerator` 为每个技能预先计算“施放格偏移 → 覆盖格偏移”模板（覆盖形状对施法者平移不变），枚举时按落点平移并经位置索引收集主要目标。
+- 默认评分器 `BattleSkillPreviewAiScorer` 对外功、招式、奥义与攻击型特殊技能统一使用技能执行预览；`BattleAiOutcomeValuation` 沿用原版 AI 的伤害口径（敌方伤害、友伤与击杀），并把状态、驱散、回复、怒气与集气折算为等价气血的 `UtilityScore`。伤害型技能仍要求覆盖范围内有敌人；非伤害步骤的攻击技能只要有伤害或正收益即成为候选，因此“对自己施放、实际影响全场”的技能（飞星术）按实际作用单位评估。
+- 无攻击候选时，按原版有一半机会对自己施放辅助特殊技能；先排除预览有害的技能，并优先在有正收益的技能中随机选择。
+- 固定基准 `tests/Game.AiBenchmarks`（`dotnet run -c Release --project tests/Game.AiBenchmarks`）输出小型、常规与候选密集战场的平均决策耗时、分配量与决策摘要；加 `-- --content mods/jyxr-base` 则用真实 MOD 数据跑 AI 对战冒烟并实际执行每个计划；`BattleAiRegressionTests` 锁定这些战场的决策与分配量上限。有意修改 AI 规则导致基准决策变化时，重新生成基线。
 
 ## 命令与消息
 

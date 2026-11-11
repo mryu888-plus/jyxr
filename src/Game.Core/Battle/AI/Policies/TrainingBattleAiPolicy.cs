@@ -11,12 +11,13 @@ internal sealed class TrainingBattleAiPolicy : IBattleAiPolicy
         _skillMaxLevelResolver = skillMaxLevelResolver ?? throw new ArgumentNullException(nameof(skillMaxLevelResolver));
     }
 
-    public IReadOnlyList<BattleTurnCandidate> GenerateCandidates(
-        BattleState state,
-        BattleUnit unit,
+    public IEnumerable<BattleTurnCandidate> GenerateCandidates(
+        BattleAiEvaluationContext context,
         BattleTurnCandidateGenerator generator)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(generator);
+        var unit = context.Unit;
 
         var progressionSkills = new HashSet<SkillInstance>(ReferenceEqualityComparer.Instance);
         foreach (var skill in BattleSkillCatalog.CollectSelectableSkills(unit))
@@ -35,12 +36,11 @@ internal sealed class TrainingBattleAiPolicy : IBattleAiPolicy
         if (progressionSkills.Count == 0 ||
             progressionSkills.All(skill => skill.Level >= _skillMaxLevelResolver(skill)))
         {
-            return generator.Generate(state, unit.Id);
+            return generator.Enumerate(context);
         }
 
-        return generator.Generate(
-            state,
-            unit.Id,
+        return generator.Enumerate(
+            context,
             new BattleTurnCandidateGenerationOptions(SkillFilter: IsTrainingSkillAllowed));
     }
 

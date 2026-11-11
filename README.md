@@ -20,6 +20,12 @@
 dotnet test engine-free-rpg.slnx
 ```
 
+战斗 AI 固定基准（决策耗时、分配量与决策摘要）：
+
+```powershell
+dotnet run -c Release --project tests/Game.AiBenchmarks
+```
+
 Godot 节点、输入、动画和异步演出需在引擎内另行验证。
 
 ## 导出
