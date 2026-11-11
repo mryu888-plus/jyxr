@@ -1,17 +1,25 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record CarefulDefenseBattleEffectParameters(
     string Mode,
-    [property: NotWhiteSpace] string CarefulTalentId,
-    [property: NotWhiteSpace] string SmartTalentId,
+    [property: JsonPropertyName("carefulTalentId")] ContentReference<TalentDefinition> CarefulTalentReference,
+    [property: JsonPropertyName("smartTalentId")] ContentReference<TalentDefinition> SmartTalentReference,
     [property: Probability] double CarefulChance,
     [property: NonNegative] int CarefulDamageCap,
     [property: Probability] double SmartChance,
     [property: NonNegative] int SmartDamageCap,
     BattleSpeechDefinition CarefulSpeech,
-    BattleSpeechDefinition SmartSpeech);
+    BattleSpeechDefinition SmartSpeech)
+{
+    [JsonIgnore]
+    public string CarefulTalentId => CarefulTalentReference.Id;
+    [JsonIgnore]
+    public string SmartTalentId => SmartTalentReference.Id;
+}
 
 internal sealed class CarefulDefenseBattleEffectHandler
     : CustomBattleEffectHandler<CarefulDefenseBattleEffectParameters, IDamageApplicationEffectContext>

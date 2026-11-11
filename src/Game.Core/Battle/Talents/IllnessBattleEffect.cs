@@ -1,10 +1,16 @@
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
+using Game.Core.Definitions;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record IllnessBattleEffectParameters(
-    string? ProtectorCharacterId = null,
-    string? SkipReason = null);
+    [property: JsonPropertyName("protectorCharacterId")] ContentReference<CharacterDefinition>? ProtectorCharacterReference = null,
+    string? SkipReason = null)
+{
+    [JsonIgnore]
+    public string? ProtectorCharacterId => ProtectorCharacterReference?.Id;
+}
 
 public sealed class IllnessBattleEffectHandler : CustomBattleEffectHandler<IllnessBattleEffectParameters, IActionStartEffectContext>
 {

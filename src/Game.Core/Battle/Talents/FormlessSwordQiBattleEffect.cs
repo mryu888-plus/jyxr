@@ -1,12 +1,18 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record FormlessSwordQiBattleEffectParameters(
-    [property: NotWhiteSpace] string SourceSkillId,
+    [property: JsonPropertyName("sourceSkillId")] SkillSourceReference SourceSkillReference,
     [property: NonNegative] int MpDifferenceCap,
     [property: NonNegative] double MinimumFactor,
-    [property: NonNegative] double MaximumFactor);
+    [property: NonNegative] double MaximumFactor)
+{
+    [JsonIgnore]
+    public string SourceSkillId => SourceSkillReference.Id;
+}
 
 internal sealed class FormlessSwordQiBattleEffectHandler
     : CustomBattleEffectHandler<FormlessSwordQiBattleEffectParameters, IDamageCalculationEffectContext>

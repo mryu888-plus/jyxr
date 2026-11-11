@@ -1,3 +1,5 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
@@ -67,10 +69,14 @@ public sealed class QiShieldDefeatPreventionBattleEffectHandler
 
 public sealed record EndlessFightingSpiritBattleEffectParameters(
     [property: NotWhiteSpace] string AbilityId,
-    [property: NotWhiteSpace] string GuaranteedFirstTalentId,
+    [property: JsonPropertyName("guaranteedFirstTalentId")] ContentReference<TalentDefinition> GuaranteedFirstTalentReference,
     [property: Probability] double Chance,
     string? FloatText = null,
-    string? Speech = null);
+    string? Speech = null)
+{
+    [JsonIgnore]
+    public string GuaranteedFirstTalentId => GuaranteedFirstTalentReference.Id;
+}
 
 public sealed class EndlessFightingSpiritBattleEffectHandler
     : CustomBattleEffectHandler<EndlessFightingSpiritBattleEffectParameters, IDefeatPreventionEffectContext>

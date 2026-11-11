@@ -22,18 +22,4 @@ public sealed record SpecialSkillDefinition(
     string Audio,
     BattleSpeechDefinition? Speech,
     IReadOnlyList<SkillBuffDefinition> Buffs,
-    IReadOnlyList<BattleEffectDefinition>? Effects = null)
-{
-    public void Resolve(IContentRepository contentRepository)
-    {
-        foreach (var buff in Buffs)
-        {
-            buff.Resolve(contentRepository);
-        }
-
-        foreach (var effect in Effects ?? [])
-        {
-            effect.Resolve(contentRepository);
-        }
-    }
-}
+    IReadOnlyList<BattleEffectDefinition>? Effects = null);

@@ -1,3 +1,4 @@
+using Game.Core.Definitions;
 using System.Text.Json;
 using Game.Core.Battle;
 
@@ -18,7 +19,7 @@ public sealed class CustomBattleEffectParameterValidationTests
         var effect = CreateEffect(effectId, parametersJson);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            effect.Resolve(TestContentFactory.CreateRepository()));
+            ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository()));
 
         Assert.Contains($"Custom battle effect '{effectId}' parameters failed validation", exception.Message);
         Assert.Contains(memberName, exception.Message);
@@ -43,7 +44,7 @@ public sealed class CustomBattleEffectParameterValidationTests
             """);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            effect.Resolve(TestContentFactory.CreateRepository()));
+            ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository()));
 
         Assert.Contains("Maximum contest chance cannot be lower", exception.Message);
     }
@@ -53,7 +54,7 @@ public sealed class CustomBattleEffectParameterValidationTests
     {
         var effect = CreateEffect("bright_sacred_fire_formation", "{}");
 
-        effect.Resolve(TestContentFactory.CreateRepository());
+        ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository());
     }
 
     private static CustomBattleEffectDefinition CreateEffect(string effectId, string parametersJson)

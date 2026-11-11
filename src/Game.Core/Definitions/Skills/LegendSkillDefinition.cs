@@ -13,13 +13,4 @@ public sealed record LegendSkillDefinition(
     IReadOnlyList<SkillBuffDefinition> Buffs,
     double PowerExtra = 0d,
     int RequiredLevel = 1,
-    string? Animation = null)
-{
-    public void Resolve(IContentRepository contentRepository)
-    {
-        foreach (var buff in Buffs)
-        {
-            buff.Resolve(contentRepository);
-        }
-    }
-}
+    string? Animation = null);

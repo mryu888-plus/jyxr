@@ -1,14 +1,20 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record ShiftingStarsReflectionBattleEffectParameters(
-    [property: NotWhiteSpace] string FamilyTalentId,
+    [property: JsonPropertyName("familyTalentId")] ContentReference<TalentDefinition> FamilyTalentReference,
     [property: Probability] double Chance,
     [property: Probability] double FamilyChance,
     [property: Probability] double DamageFactor,
     string FloatText,
-    string Speech);
+    string Speech)
+{
+    [JsonIgnore]
+    public string FamilyTalentId => FamilyTalentReference.Id;
+}
 
 internal sealed class ShiftingStarsReflectionBattleEffectHandler
     : CustomBattleEffectHandler<ShiftingStarsReflectionBattleEffectParameters, IDamageApplicationEffectContext>

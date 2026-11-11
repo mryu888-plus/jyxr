@@ -1,12 +1,18 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 namespace Game.Core.Battle;
 
 public sealed record RandomBuffBattleEffectParameters(
-    [property: NotWhiteSpace] string BuffId,
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference,
     [property: Probability] double Chance,
     [property: NonNegative] int MinimumLevel,
     [property: NonNegative] int MaximumLevel,
     [property: Positive] int MinimumDuration,
-    [property: Positive] int MaximumDuration);
+    [property: Positive] int MaximumDuration)
+{
+    [JsonIgnore]
+    public string BuffId => BuffReference.Id;
+}
 
 public sealed class RandomBuffBattleEffectHandler
     : CustomAbilityBattleEffectHandler<RandomBuffBattleEffectParameters>

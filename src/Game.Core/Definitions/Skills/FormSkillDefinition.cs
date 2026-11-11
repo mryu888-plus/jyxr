@@ -16,13 +16,4 @@ public sealed record FormSkillDefinition(
     string Audio,
     IReadOnlyList<SkillBuffDefinition> Buffs,
     double Hard = 1d,
-    double? LifestealRate = null)
-{
-    public void Resolve(IContentRepository contentRepository)
-    {
-        foreach (var buff in Buffs)
-        {
-            buff.Resolve(contentRepository);
-        }
-    }
-}
+    double? LifestealRate = null);

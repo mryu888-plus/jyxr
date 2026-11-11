@@ -67,7 +67,7 @@ internal static class TestContentFactory
             Audio = audio,
             Animation = animation,
             Buffs = buffs ?? [],
-            RawLevelOverrides = levelOverrides ?? [],
+            LevelOverrideEntries = levelOverrides ?? [],
             FormSkills = formSkills ?? [],
             Affixes = affixes ?? [],
         };
@@ -121,17 +121,17 @@ internal static class TestContentFactory
             stats ?? new Dictionary<StatType, int>(),
             externalSkills ?? [],
             internalSkills ?? [],
-            (talents ?? []).Select(static talent => talent.Id).ToList(),
-            (equipment ?? []).Select(static item => item.Id).ToList(),
+            (talents ?? []).Select(static talent => new ContentReference<TalentDefinition>(talent.Id, talent)).ToList(),
+            (equipment ?? []).Select(static item => new ContentReference<EquipmentDefinition>(item.Id, item)).ToList(),
             level,
             portrait,
             model,
             gender,
             growTemplate,
             arenaEnabled,
-            (specialSkills ?? []).Select(static skill => skill.Id).ToList());
+            (specialSkills ?? []).Select(static skill => new ContentReference<SpecialSkillDefinition>(skill.Id, skill)).ToList());
 
-        definition.Resolve(CreateRepository(
+        ContentReferenceGraph.Resolve(definition, CreateRepository(
             externalSkills: (externalSkills ?? []).Select(static entry => entry.Skill),
             internalSkills: (internalSkills ?? []).Select(static entry => entry.Skill),
             specialSkills: specialSkills ?? [],

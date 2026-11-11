@@ -1,11 +1,17 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record PoisonedTargetLevelDamageBattleEffectParameters(
-    [property: NotWhiteSpace] string BuffId,
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference,
     [property: NonNegative] double MaximumBonus,
-    [property: Positive] int ReferenceLevel);
+    [property: Positive] int ReferenceLevel)
+{
+    [JsonIgnore]
+    public string BuffId => BuffReference.Id;
+}
 
 internal sealed class PoisonedTargetLevelDamageBattleEffectHandler
     : CustomBattleEffectHandler<PoisonedTargetLevelDamageBattleEffectParameters, IDamageCalculationEffectContext>

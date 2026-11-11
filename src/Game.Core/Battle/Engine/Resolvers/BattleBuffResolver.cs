@@ -10,7 +10,7 @@ internal sealed class BattleBuffResolver(
     Func<string, BuffDefinition> definitionResolver)
 {
     public BuffDefinition Resolve(ApplyBuffBattleEffectDefinition effect) =>
-        effect.Buff ?? definitionResolver(effect.BuffId);
+        effect.BuffReference.IsResolved ? effect.Buff : definitionResolver(effect.BuffId);
 
     public BuffDefinition Resolve(string buffId) => definitionResolver(buffId);
 

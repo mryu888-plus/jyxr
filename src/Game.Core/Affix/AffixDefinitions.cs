@@ -35,10 +35,6 @@ public abstract record AffixDefinition
 
     [JsonIgnore]
     public int SourceAffixOrder { get; internal init; }
-
-    public virtual void Resolve(IContentRepository contentRepository)
-    {
-    }
 }
 
 public sealed record SkillAffixDefinition(
@@ -48,15 +44,14 @@ public sealed record SkillAffixDefinition(
 
 public sealed record StatModifierAffix(StatType Stat, ModifierValue Value) : AffixDefinition;
 
-public sealed record GrantTalentAffix(string TalentId) : AffixDefinition
+public sealed record GrantTalentAffix(
+    [property: JsonPropertyName("talentId")] ContentReference<TalentDefinition> TalentReference) : AffixDefinition
 {
     [JsonIgnore]
-    public TalentDefinition Talent { get; private set; } = null!;
+    public string TalentId => TalentReference.Id;
 
-    public override void Resolve(IContentRepository contentRepository)
-    {
-        Talent = contentRepository.GetTalent(TalentId);
-    }
+    [JsonIgnore]
+    public TalentDefinition Talent => TalentReference.Definition;
 }
 
 public sealed record GrantModelAffix(string ModelId, int Priority, string Description = "") : AffixDefinition;
@@ -83,31 +78,25 @@ public sealed record SkillTargetingModifierAffix(
     ModifierValue Value) : AffixDefinition
 {
     public bool Matches(SkillInstance skill) => Selector is null || Selector.Matches(skill);
-
-    public override void Resolve(IContentRepository contentRepository) =>
-        Selector?.Resolve(contentRepository);
 }
 
 /// <summary>
 /// 技能选择器：各条件之间为“且”，同一条件内为“或”；未声明的条件不限制。
-/// sourceSkillIds 按技能来源 ID 匹配（招式、奥义匹配其父技能）。
+/// sourceSkillIds 按技能来源 ID 匹配（招式、奥义匹配其父技能），引用由 <see cref="ContentReferenceGraph"/> 统一解析。
 /// </summary>
 public sealed record SkillSelectorDefinition(
-    IReadOnlyList<string>? SourceSkillIds = null,
+    IReadOnlyList<SkillSourceReference>? SourceSkillIds = null,
     IReadOnlyList<WeaponType>? WeaponTypes = null,
     IReadOnlyList<SkillKind>? SkillKinds = null,
-    IReadOnlyList<SkillSourceKind>? SourceKinds = null)
+    IReadOnlyList<SkillSourceKind>? SourceKinds = null) : IContentResolutionHook
 {
-    public bool Matches(SkillInstance skill)
-    {
-        ArgumentNullException.ThrowIfNull(skill);
-        return (SourceSkillIds is null || SourceSkillIds.Contains(skill.SourceSkillId, StringComparer.Ordinal)) &&
-               (WeaponTypes is null || WeaponTypes.Contains(skill.WeaponType)) &&
-               (SkillKinds is null || SkillKinds.Contains(skill.SkillKind)) &&
-               (SourceKinds is null || SourceKinds.Contains(skill.SourceKind));
-    }
+    public bool Matches(SkillInstance skill) =>
+        (SourceSkillIds is null || SourceSkillIds.Any(reference => string.Equals(reference.Id, skill.SourceSkillId, StringComparison.Ordinal))) &&
+        (WeaponTypes is null || WeaponTypes.Contains(skill.WeaponType)) &&
+        (SkillKinds is null || SkillKinds.Contains(skill.SkillKind)) &&
+        (SourceKinds is null || SourceKinds.Contains(skill.SourceKind));
 
-    public void Resolve(IContentRepository contentRepository)
+    public void OnResolve(IContentRepository contentRepository)
     {
         foreach (var (name, count) in new[]
                  {
@@ -127,18 +116,6 @@ public sealed record SkillSelectorDefinition(
         {
             throw new InvalidOperationException("Skill selector must declare at least one condition; omit the selector to match every skill.");
         }
-
-        foreach (var sourceSkillId in SourceSkillIds ?? [])
-        {
-            if (string.IsNullOrWhiteSpace(sourceSkillId) ||
-                (!contentRepository.TryGetExternalSkill(sourceSkillId, out _) &&
-                 !contentRepository.TryGetInternalSkill(sourceSkillId, out _) &&
-                 !contentRepository.TryGetSpecialSkill(sourceSkillId, out _)))
-            {
-                throw new InvalidOperationException(
-                    $"Skill selector references missing source skill '{sourceSkillId}'.");
-            }
-        }
     }
 }
 
@@ -155,14 +132,6 @@ public sealed record HookAffix : AffixDefinition
     public BattleFloatTextDefinition? FloatText { get; init; }
 
     public BattleSpeechDefinition? Speech { get; init; }
-
-    public override void Resolve(IContentRepository contentRepository)
-    {
-        foreach (var effect in Effects)
-        {
-            effect.Resolve(contentRepository);
-        }
-    }
 }
 
 public sealed record TraitAffix(TraitId TraitId) : AffixDefinition;

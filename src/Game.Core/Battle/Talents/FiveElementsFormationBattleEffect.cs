@@ -1,12 +1,18 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record FiveElementsFormationDamageShareParameters(
-    [property: NotWhiteSpace] string TalentId,
+    [property: JsonPropertyName("talentId")] ContentReference<TalentDefinition> TalentReference,
     [property: NotWhiteSpace] string Speech,
     [property: NonNegative] int Radius = 5,
-    [property: Probability] double Chance = 0.5d);
+    [property: Probability] double Chance = 0.5d)
+{
+    [JsonIgnore]
+    public string TalentId => TalentReference.Id;
+}
 
 internal sealed class FiveElementsFormationDamageShareHandler
     : CustomBattleEffectHandler<FiveElementsFormationDamageShareParameters, IDamageApplicationEffectContext>

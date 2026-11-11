@@ -1,12 +1,18 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
+using Game.Core.Definitions;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record RandomDebuffBattleEffectParameters(
-    [property: Required, MinLength(1)] IReadOnlyList<string> BuffIds,
+    [property: JsonPropertyName("buffIds"), Required, MinLength(1)] IReadOnlyList<ContentReference<BuffDefinition>> BuffReferences,
     [property: NonNegative] int Level,
-    [property: Positive] int Duration);
+    [property: Positive] int Duration)
+{
+    [JsonIgnore]
+    public IReadOnlyList<string> BuffIds => BuffReferences.Select(static reference => reference.Id).ToList();
+}
 
 internal sealed class RandomDebuffBattleEffectHandler
     : CustomBattleEffectHandler<RandomDebuffBattleEffectParameters, IHitConfirmedEffectContext>
@@ -16,8 +22,6 @@ internal sealed class RandomDebuffBattleEffectHandler
 
     public override void Validate(RandomDebuffBattleEffectParameters parameters)
     {
-        if (parameters.BuffIds.Any(string.IsNullOrWhiteSpace))
-            throw new InvalidOperationException("Random debuff IDs cannot contain blank values.");
         if (parameters.BuffIds.Distinct(StringComparer.Ordinal).Count() != parameters.BuffIds.Count)
             throw new InvalidOperationException("Random debuff IDs cannot contain duplicate values.");
     }

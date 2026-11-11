@@ -1,11 +1,17 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record ZhenwuFormationAttackBattleEffectParameters(
-    [property: NotWhiteSpace] string FormationTalentId,
+    [property: JsonPropertyName("formationTalentId")] ContentReference<TalentDefinition> FormationTalentReference,
     [property: NonNegative] double MaxAttackIncrease = 0.1d,
-    string? FloatText = null);
+    string? FloatText = null)
+{
+    [JsonIgnore]
+    public string FormationTalentId => FormationTalentReference.Id;
+}
 
 public sealed class ZhenwuFormationAttackBattleEffectHandler
     : CustomBattleEffectHandler<ZhenwuFormationAttackBattleEffectParameters, IDamageCalculationEffectContext>
@@ -43,10 +49,14 @@ public sealed class ZhenwuFormationAttackBattleEffectHandler
 }
 
 public sealed record ZhenwuFormationInterceptBattleEffectParameters(
-    [property: NotWhiteSpace] string FormationTalentId,
+    [property: JsonPropertyName("formationTalentId")] ContentReference<TalentDefinition> FormationTalentReference,
     [property: Probability] double InterceptChance = 0.5d,
     [property: Probability] double DamageFactor = 0.3d,
-    string? Speech = null);
+    string? Speech = null)
+{
+    [JsonIgnore]
+    public string FormationTalentId => FormationTalentReference.Id;
+}
 
 public sealed class ZhenwuFormationInterceptBattleEffectHandler
     : CustomBattleEffectHandler<ZhenwuFormationInterceptBattleEffectParameters, IDamageApplicationEffectContext>

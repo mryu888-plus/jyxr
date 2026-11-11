@@ -1,13 +1,19 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record EternalSpringBattleEffectParameters(
-    [property: NotWhiteSpace] string EnhancedTalentId,
+    [property: JsonPropertyName("enhancedTalentId")] ContentReference<TalentDefinition> EnhancedTalentReference,
     [property: Probability] double Chance,
     [property: Probability] double EnhancedChance,
     [property: Probability] double RecoveryFactor,
-    string FloatText);
+    string FloatText)
+{
+    [JsonIgnore]
+    public string EnhancedTalentId => EnhancedTalentReference.Id;
+}
 
 internal sealed class EternalSpringBattleEffectHandler
     : CustomBattleEffectHandler<EternalSpringBattleEffectParameters, IDamageApplicationEffectContext>

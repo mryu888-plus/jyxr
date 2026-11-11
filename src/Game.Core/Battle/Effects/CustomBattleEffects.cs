@@ -214,6 +214,7 @@ public sealed class CustomBattleEffectRegistry
             BattleEffectParameterValidation.Validate(effectId, parsedParameters);
             handler.Validate(parsedParameters);
             return new CustomBattleEffectInvocation(
+                parsedParameters!,
                 handler.SupportsPreview,
                 handler.SupportedTimings,
                 ExecuteHook: context => handler.Execute(
@@ -248,6 +249,7 @@ public sealed class CustomBattleEffectRegistry
             BattleEffectParameterValidation.Validate(effectId, parsedParameters);
             handler.Validate(parsedParameters);
             return new CustomBattleEffectInvocation(
+                parsedParameters!,
                 SupportsPreview: false,
                 SupportedTimings: new HashSet<HookTiming>(),
                 ExecuteHook: null,
@@ -260,6 +262,7 @@ public sealed class CustomBattleEffectRegistry
 }
 
 internal sealed record CustomBattleEffectInvocation(
+    object Parameters,
     bool SupportsPreview,
     IReadOnlySet<HookTiming> SupportedTimings,
     Action<BattleHookContext>? ExecuteHook,

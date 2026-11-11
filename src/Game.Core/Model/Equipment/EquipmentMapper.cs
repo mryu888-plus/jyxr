@@ -1,4 +1,5 @@
 using Game.Core.Abstractions;
+using Game.Core.Definitions;
 using Game.Core.Persistence;
 
 namespace Game.Core.Model;
@@ -10,7 +11,7 @@ public static class EquipmentMapper
         var definition = contentRepository.GetEquipment(record.EquipmentDefinitionId);
         foreach (var affix in record.ExtraAffixes)
         {
-            affix.Resolve(contentRepository);
+            ContentReferenceGraph.Resolve(affix, contentRepository);
         }
 
         return new EquipmentInstance(record.Id, definition, record.ExtraAffixes);

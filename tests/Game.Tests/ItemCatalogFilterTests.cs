@@ -94,8 +94,11 @@ public sealed class ItemCatalogFilterTests
         {
             repository.ItemTags.Add(tag.Id, new ItemTagDefinition { Id = tag.Id, Name = tag.Id, Order = tag.Order });
         }
-        var equipment = TestContentFactory.CreateEquipment(id) with { TagIds = tags.Select(tag => tag.Id).ToArray() };
-        equipment.ResolveTags(repository);
+        var equipment = TestContentFactory.CreateEquipment(id) with
+        {
+            TagReferences = tags.Select(static tag => new ContentReference<ItemTagDefinition>(tag.Id)).ToArray(),
+        };
+        ContentReferenceGraph.Resolve(equipment, repository);
         return equipment;
     }
 }

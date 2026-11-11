@@ -12,48 +12,29 @@ public sealed record CharacterDefinition(
     IReadOnlyDictionary<StatType, int> Stats,
     IReadOnlyList<InitialExternalSkillEntryDefinition> ExternalSkills,
     IReadOnlyList<InitialInternalSkillEntryDefinition> InternalSkills,
-    IReadOnlyList<string> TalentIds,
-    IReadOnlyList<string> EquipmentIds,
+    [property: JsonPropertyName("talentIds")] IReadOnlyList<ContentReference<TalentDefinition>> TalentReferences,
+    [property: JsonPropertyName("equipmentIds")] IReadOnlyList<ContentReference<EquipmentDefinition>> EquipmentReferences,
     int Level = 1,
     string? Portrait = null,
     string? Model = null,
     CharacterGender Gender = CharacterGender.Neutral,
     string? GrowTemplate = null,
     bool ArenaEnabled = false,
-    IReadOnlyList<string>? SpecialSkillIds = null)
+    [property: JsonPropertyName("specialSkillIds")] IReadOnlyList<ContentReference<SpecialSkillDefinition>>? SpecialSkillReferences = null)
 {
     [JsonIgnore]
-    public IReadOnlyList<TalentDefinition> Talents { get; private set; } = [];
+    public IReadOnlyList<string> TalentIds =>
+        TalentReferences.Select(static reference => reference.Id).ToList();
 
     [JsonIgnore]
-    public IReadOnlyList<EquipmentDefinition> Equipments { get; private set; } = [];
+    public IReadOnlyList<TalentDefinition> Talents =>
+        TalentReferences.Select(static reference => reference.Definition).ToList();
 
     [JsonIgnore]
-    public IReadOnlyList<SpecialSkillDefinition> SpecialSkills { get; private set; } = [];
+    public IReadOnlyList<EquipmentDefinition> Equipments =>
+        EquipmentReferences.Select(static reference => reference.Definition).ToList();
 
     [JsonIgnore]
-    private bool IsResolved { get; set; }
-
-    public void Resolve(IContentRepository contentRepository)
-    {
-        if (IsResolved)
-        {
-            return;
-        }
-
-        foreach (var skill in ExternalSkills)
-        {
-            skill.Resolve(contentRepository);
-        }
-
-        foreach (var skill in InternalSkills)
-        {
-            skill.Resolve(contentRepository);
-        }
-
-        Talents = TalentIds.Select(contentRepository.GetTalent).ToList();
-        Equipments = EquipmentIds.Select(contentRepository.GetEquipment).ToList();
-        SpecialSkills = (SpecialSkillIds ?? []).Select(contentRepository.GetSpecialSkill).ToList();
-        IsResolved = true;
-    }
+    public IReadOnlyList<SpecialSkillDefinition> SpecialSkills =>
+        (SpecialSkillReferences ?? []).Select(static reference => reference.Definition).ToList();
 }

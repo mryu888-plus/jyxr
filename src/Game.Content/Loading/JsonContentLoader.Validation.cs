@@ -300,16 +300,11 @@ public sealed partial class JsonContentLoader
 
         foreach (var item in repository.Items.Values)
         {
-            var itemTagIds = item.TagIds;
-            Ensure(itemTagIds is not null, $"Item '{item.Id}' has null item tag ids.");
-
+            // 标签是否存在由引用解析阶段保证，这里只检查重复。
             var tagIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var tagId in itemTagIds!)
+            foreach (var tagId in item.TagIds)
             {
-                Ensure(!string.IsNullOrWhiteSpace(tagId), $"Item '{item.Id}' has an empty item tag id.");
                 Ensure(tagIds.Add(tagId), $"Item '{item.Id}' references item tag '{tagId}' more than once.");
-                Ensure(repository.ItemTags.ContainsKey(tagId),
-                    $"Item '{item.Id}' references missing item tag '{tagId}'.");
             }
         }
     }
@@ -948,11 +943,9 @@ public sealed partial class JsonContentLoader
                     break;
                 case CustomBattleEffectDefinition:
                     break;
-                case GrantScopedBattleEffectDefinition grant:
+                case GrantScopedBattleEffectDefinition:
                     Ensure(hook.Timing == HookTiming.OnBattleStart,
                         $"{ownerName} can only grant scoped effects during '{HookTiming.OnBattleStart}'.");
-                    Ensure(repository is not null && repository.ScopedBattleEffects.ContainsKey(grant.EffectId),
-                        $"{ownerName} references missing scoped battle effect '{grant.EffectId}'.");
                     break;
                 default:
                     throw new InvalidOperationException($"{ownerName} has unsupported battle hook effect '{effect.GetType().Name}'.");
@@ -1025,11 +1018,6 @@ public sealed partial class JsonContentLoader
         {
             case ApplyBuffBattleEffectDefinition applyBuff:
                 Ensure(applyBuff.Target is not null, $"{ownerName} apply_buff effect is missing target.");
-                Ensure(!string.IsNullOrWhiteSpace(applyBuff.BuffId), $"{ownerName} apply_buff effect is missing buffId.");
-                if (repository is not null)
-                {
-                    Ensure(repository.Buffs.ContainsKey(applyBuff.BuffId), $"{ownerName} references missing buff '{applyBuff.BuffId}'.");
-                }
                 Ensure(applyBuff.Level >= 0, $"{ownerName} apply_buff effect has invalid level '{applyBuff.Level}'.");
                 Ensure(applyBuff.Duration >= 1, $"{ownerName} apply_buff effect has invalid duration '{applyBuff.Duration}'.");
                 Ensure(applyBuff.Chance is >= 0 and <= 100, $"{ownerName} apply_buff effect has invalid chance '{applyBuff.Chance}'.");
@@ -1037,11 +1025,6 @@ public sealed partial class JsonContentLoader
                 break;
             case RemoveBuffBattleEffectDefinition removeBuff:
                 Ensure(removeBuff.Target is not null, $"{ownerName} remove_buff effect is missing target.");
-                Ensure(!string.IsNullOrWhiteSpace(removeBuff.BuffId), $"{ownerName} remove_buff effect is missing buffId.");
-                if (repository is not null)
-                {
-                    Ensure(repository.Buffs.ContainsKey(removeBuff.BuffId), $"{ownerName} references missing buff '{removeBuff.BuffId}'.");
-                }
                 ValidateBattleUnitSelector(removeBuff.Target!, ownerName, null);
                 break;
             case RemoveNegativeBuffsBattleEffectDefinition removeNegativeBuffs:

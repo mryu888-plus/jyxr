@@ -2594,7 +2594,7 @@ public sealed class BattleEngineTests
                 },
             ],
         };
-        intercept.Resolve(TestContentFactory.CreateRepository(talents: [formation]));
+        ContentReferenceGraph.Resolve(intercept, TestContentFactory.CreateRepository(talents: [formation]));
         var source = CreateUnit(
             "source",
             team: 1,
@@ -4228,7 +4228,7 @@ public sealed class BattleEngineTests
                 },
             ],
         };
-        effect.Resolve(TestContentFactory.CreateRepository(buffs: [definition]));
+        ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository(buffs: [definition]));
         return definition;
     }
 
@@ -4845,7 +4845,7 @@ public sealed class BattleEngineTests
             Speech: null,
             Buffs: [],
             Effects: [effect]);
-        effect.Resolve(TestContentFactory.CreateRepository(specialSkills: [skill]));
+        ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository(specialSkills: [skill]));
         return skill;
     }
 
@@ -4930,7 +4930,9 @@ public sealed class BattleEngineTests
                 },
             ],
         };
-        effect.Resolve(TestContentFactory.CreateRepository(talents: [talent]));
+        // 参数里引用的天赋必须存在（无尽斗志的 guaranteedFirstTalentId 指向"我就是神"）。
+        ContentReferenceGraph.Resolve(effect, TestContentFactory.CreateRepository(
+            talents: [talent, new TalentDefinition { Id = "我就是神", Name = "我就是神" }]));
         return talent;
     }
 

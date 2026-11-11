@@ -70,51 +70,41 @@ public sealed record ExplicitUnitsBattleUnitSelectorDefinition : BattleUnitSelec
 [JsonDerivedType(typeof(CustomBattleEffectDefinition), "custom")]
 [JsonDerivedType(typeof(CustomAbilityBattleEffectDefinition), "custom_ability")]
 [JsonDerivedType(typeof(GrantScopedBattleEffectDefinition), "grant_scoped_battle_effect")]
-public abstract record BattleEffectDefinition
-{
-    public virtual void Resolve(IContentRepository contentRepository)
-    {
-    }
-}
+public abstract record BattleEffectDefinition;
 
-public sealed record GrantScopedBattleEffectDefinition(string EffectId) : BattleEffectDefinition
+public sealed record GrantScopedBattleEffectDefinition(
+    [property: JsonPropertyName("effectId")] ContentReference<ScopedBattleEffectDefinition> EffectReference) : BattleEffectDefinition
 {
     [JsonIgnore]
-    public ScopedBattleEffectDefinition Effect { get; private set; } = null!;
+    public string EffectId => EffectReference.Id;
 
-    public override void Resolve(IContentRepository contentRepository) =>
-        Effect = contentRepository.GetScopedBattleEffect(EffectId);
+    [JsonIgnore]
+    public ScopedBattleEffectDefinition Effect => EffectReference.Definition;
 }
 
 public sealed record ApplyBuffBattleEffectDefinition(
     BattleUnitSelectorDefinition Target,
-    string BuffId,
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference,
     int Level,
     int Duration,
     int Chance = 100) : BattleEffectDefinition, ITargetedBattleEffectDefinition
 {
     [JsonIgnore]
-    public BuffDefinition Buff { get; private set; } = null!;
+    public string BuffId => BuffReference.Id;
 
-    public override void Resolve(IContentRepository contentRepository)
-    {
-        ArgumentNullException.ThrowIfNull(contentRepository);
-        Buff = contentRepository.GetBuff(BuffId);
-    }
+    [JsonIgnore]
+    public BuffDefinition Buff => BuffReference.Definition;
 }
 
 public sealed record RemoveBuffBattleEffectDefinition(
     BattleUnitSelectorDefinition Target,
-    string BuffId) : BattleEffectDefinition, ITargetedBattleEffectDefinition
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference) : BattleEffectDefinition, ITargetedBattleEffectDefinition
 {
     [JsonIgnore]
-    public BuffDefinition Buff { get; private set; } = null!;
+    public string BuffId => BuffReference.Id;
 
-    public override void Resolve(IContentRepository contentRepository)
-    {
-        ArgumentNullException.ThrowIfNull(contentRepository);
-        Buff = contentRepository.GetBuff(BuffId);
-    }
+    [JsonIgnore]
+    public BuffDefinition Buff => BuffReference.Definition;
 }
 
 public sealed record RemoveNegativeBuffsBattleEffectDefinition(
@@ -164,7 +154,7 @@ public sealed record ExtraStrikeBattleHookEffectDefinition(
 
 public sealed record CustomBattleEffectDefinition(
     string EffectId,
-    JsonElement Parameters) : BattleEffectDefinition
+    JsonElement Parameters) : BattleEffectDefinition, IContentResolutionHook
 {
     [JsonIgnore]
     internal CustomBattleEffectInvocation Invocation { get; private set; } = null!;
@@ -172,12 +162,17 @@ public sealed record CustomBattleEffectDefinition(
     [JsonIgnore]
     internal bool SupportsPreview => Invocation.SupportsPreview;
 
+    /// <summary>按处理器参数类型解析后的参数对象（引用已解析）。</summary>
+    [JsonIgnore]
+    public object BoundParameters => Invocation.Parameters;
+
     public bool SupportsTiming(HookTiming timing) => Invocation.SupportedTimings.Contains(timing);
 
-    public override void Resolve(IContentRepository contentRepository)
+    /// <summary>按参数绑定处理器，并解析参数里声明的内容引用；缺失引用在加载阶段失败。</summary>
+    public void OnResolve(IContentRepository contentRepository)
     {
-        ArgumentNullException.ThrowIfNull(contentRepository);
         Invocation = CustomBattleEffectRegistry.Default.Bind(EffectId, Parameters);
+        ContentReferenceGraph.Resolve(Invocation.Parameters, contentRepository);
     }
 
     internal void ExecuteHook(BattleHookContext context)
@@ -197,7 +192,7 @@ public sealed record CustomBattleEffectDefinition(
 public sealed record CustomAbilityBattleEffectDefinition(
     string EffectId,
     BattleUnitSelectorDefinition Target,
-    JsonElement Parameters) : BattleEffectDefinition, ITargetedBattleEffectDefinition
+    JsonElement Parameters) : BattleEffectDefinition, ITargetedBattleEffectDefinition, IContentResolutionHook
 {
     [JsonIgnore]
     internal CustomBattleEffectInvocation Invocation { get; private set; } = null!;
@@ -205,10 +200,11 @@ public sealed record CustomAbilityBattleEffectDefinition(
     [JsonIgnore]
     public bool SupportsAbility => Invocation.SupportsAbility;
 
-    public override void Resolve(IContentRepository contentRepository)
+    /// <summary>按参数绑定处理器，并解析参数里声明的内容引用；缺失引用在加载阶段失败。</summary>
+    public void OnResolve(IContentRepository contentRepository)
     {
-        ArgumentNullException.ThrowIfNull(contentRepository);
         Invocation = CustomBattleEffectRegistry.Default.Bind(EffectId, Parameters);
+        ContentReferenceGraph.Resolve(Invocation.Parameters, contentRepository);
     }
 
     internal void ExecuteAbility(IBattleAbilityEffectContext context)

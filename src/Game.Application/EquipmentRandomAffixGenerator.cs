@@ -242,7 +242,7 @@ public static class EquipmentRandomAffixGenerator
     {
         var talentId = PickRandom(option.Pool, random);
         var affix = new GrantTalentAffix(talentId);
-        affix.Resolve(contentRepository);
+        ContentReferenceGraph.Resolve(affix, contentRepository);
         return CreateRoll(EquipmentRandomAffixKind.Talent, [affix]);
     }
 

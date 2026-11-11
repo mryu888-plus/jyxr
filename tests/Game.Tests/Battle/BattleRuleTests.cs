@@ -459,7 +459,7 @@ public sealed class BattleRuleTests
             Affixes = [new TraitAffix(TraitId.IgnoreZoneOfControl)],
         };
         var grant = new GrantScopedBattleEffectDefinition(effect.Id);
-        grant.Resolve(TestContentFactory.CreateRepository(scopedBattleEffects: [effect]));
+        ContentReferenceGraph.Resolve(grant, TestContentFactory.CreateRepository(scopedBattleEffects: [effect]));
         var talent = new TalentDefinition
         {
             Id = "guard_aura_talent",
@@ -509,8 +509,8 @@ public sealed class BattleRuleTests
         };
         var grant = new GrantScopedBattleEffectDefinition(effect.Id);
         var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [effect]);
-        grant.Resolve(repository);
-        defeatText.Resolve(repository);
+        ContentReferenceGraph.Resolve(grant, repository);
+        ContentReferenceGraph.Resolve(defeatText, repository);
         var talent = new TalentDefinition
         {
             Id = "formation_talent",
@@ -595,8 +595,8 @@ public sealed class BattleRuleTests
         };
         var grant = new GrantScopedBattleEffectDefinition(effect.Id);
         var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [effect]);
-        grant.Resolve(repository);
-        attackSpeech.Resolve(repository);
+        ContentReferenceGraph.Resolve(grant, repository);
+        ContentReferenceGraph.Resolve(attackSpeech, repository);
         var talent = new TalentDefinition
         {
             Id = "formation_talent",
@@ -655,15 +655,15 @@ public sealed class BattleRuleTests
             Affixes = [new HookAffix { Timing = HookTiming.BeforeDamageApplied, Effects = [shareEffect] }],
         };
         var grant = new GrantScopedBattleEffectDefinition(scoped.Id);
-        var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [scoped]);
-        grant.Resolve(repository);
-        shareEffect.Resolve(repository);
         var talent = new TalentDefinition
         {
             Id = talentId,
             Name = talentId,
             Affixes = [new HookAffix { Timing = HookTiming.OnBattleStart, Effects = [grant] }],
         };
+        var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [scoped], talents: [talent]);
+        ContentReferenceGraph.Resolve(grant, repository);
+        ContentReferenceGraph.Resolve(shareEffect, repository);
         var strike = TestContentFactory.CreateExternalSkill("share_strike", powerBase: 20, castSize: 3);
 
         static int ResolveDamage(IReadOnlyList<BattleMessage> messages) => messages

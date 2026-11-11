@@ -8,6 +8,10 @@ namespace Game.Content.Loading;
 
 public sealed partial class JsonContentLoader
 {
+    /// <summary>
+    /// 两阶段装配：先把全部定义注册进仓库（此时引用尚未解析），再由 <see cref="ContentReferenceResolver"/>
+    /// 统一解析所有定义里的引用。解析只按 ID 查找已注册的定义，与注册和解析顺序无关，因此允许定义间循环引用。
+    /// </summary>
     private static InMemoryContentRepository BuildRepository(ContentPackage package)
     {
         var repository = new InMemoryContentRepository
@@ -38,88 +42,8 @@ public sealed partial class JsonContentLoader
         };
 
         ValidateItemTags(repository);
-        ResolveItemTags(repository);
-
-        ResolveAffixes(repository);
-
-        foreach (var effect in repository.ScopedBattleEffects.Values)
-        {
-            foreach (var affix in effect.Affixes)
-            {
-                affix.Resolve(repository);
-            }
-        }
-
-        foreach (var definition in repository.SpecialSkills.Values)
-        {
-            definition.Resolve(repository);
-        }
-
-        foreach (var definition in repository.ExternalSkills.Values)
-        {
-            definition.Resolve(repository);
-        }
-
-        foreach (var definition in repository.InternalSkills.Values)
-        {
-            definition.Resolve(repository);
-        }
-
-        foreach (var definition in repository.Characters.Values)
-        {
-            definition.Resolve(repository);
-        }
-
-        foreach (var definition in repository.LegendSkills)
-        {
-            definition.Resolve(repository);
-        }
-
+        ContentReferenceResolver.ResolveAll(repository);
         return repository;
-    }
-
-    private static void ResolveItemTags(InMemoryContentRepository repository)
-    {
-        foreach (var item in repository.Items.Values)
-        {
-            item.ResolveTags(repository);
-        }
-    }
-
-    private static void ResolveAffixes(InMemoryContentRepository repository)
-    {
-        var providers = repository.Talents.Values
-            .Cast<IAffixProvider>()
-            .Concat(repository.Buffs.Values)
-            .Concat(repository.Equipments.Values);
-
-        foreach (var provider in providers)
-        {
-            foreach (var affix in provider.Affixes)
-            {
-                affix.Resolve(repository);
-            }
-        }
-
-        foreach (var skill in repository.ExternalSkills.Values)
-        {
-            foreach (var affix in skill.Affixes)
-            {
-                var effect = affix.Effect;
-                Ensure(effect is not null, $"ExternalSkill '{skill.Id}' has skill affix without effect.");
-                effect!.Resolve(repository);
-            }
-        }
-
-        foreach (var skill in repository.InternalSkills.Values)
-        {
-            foreach (var affix in skill.Affixes)
-            {
-                var effect = affix.Effect;
-                Ensure(effect is not null, $"InternalSkill '{skill.Id}' has skill affix without effect.");
-                effect!.Resolve(repository);
-            }
-        }
     }
 
     private static Dictionary<string, ItemDefinition> BuildItems(ContentPackage package) =>

@@ -24,36 +24,22 @@ public sealed record ExternalSkillDefinition
     public string Audio { get; init; } = "";
     public string Animation { get; init; } = "";
     public IReadOnlyList<SkillBuffDefinition> Buffs { get; init; } = [];
+    /// <summary>按等级覆盖的数值，JSON 中是列表；运行期通过 <see cref="LevelOverrides"/> 按等级查找。</summary>
     [JsonPropertyName("levelOverrides")]
-    public IReadOnlyList<ExternalSkillLevelDefinition> RawLevelOverrides { get; init; } = [];
+    public IReadOnlyList<ExternalSkillLevelDefinition> LevelOverrideEntries
+    {
+        get;
+        init
+        {
+            field = value;
+            LevelOverrides = value.ToDictionary(static definition => definition.Level, static definition => definition);
+        }
+    } = [];
+
     public IReadOnlyList<FormSkillDefinition> FormSkills { get; init; } = [];
     public IReadOnlyList<SkillAffixDefinition> Affixes { get; init; } = [];
 
     [JsonIgnore]
-    public IReadOnlyDictionary<int, ExternalSkillLevelDefinition> LevelOverrides { get; private set; } =
+    public IReadOnlyDictionary<int, ExternalSkillLevelDefinition> LevelOverrides { get; private init; } =
         new Dictionary<int, ExternalSkillLevelDefinition>();
-
-    [JsonIgnore]
-    private bool IsResolved { get; set; }
-
-    public void Resolve(IContentRepository contentRepository)
-    {
-        if (IsResolved)
-        {
-            return;
-        }
-
-        foreach (var buff in Buffs)
-        {
-            buff.Resolve(contentRepository);
-        }
-
-        foreach (var formSkill in FormSkills)
-        {
-            formSkill.Resolve(contentRepository);
-        }
-
-        LevelOverrides = RawLevelOverrides.ToDictionary(static definition => definition.Level, static definition => definition);
-        IsResolved = true;
-    }
 }

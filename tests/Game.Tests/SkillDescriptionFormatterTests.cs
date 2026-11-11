@@ -50,7 +50,7 @@ public sealed class SkillDescriptionFormatterTests
             externalSkills: [skill],
             talents: [talent],
             buffs: [buff]);
-        skill.Resolve(repository);
+        ContentReferenceGraph.Resolve(skill, repository);
 
         var owner = CreateOwner();
         var instance = new ExternalSkillInstance(skill, owner, true)
@@ -125,7 +125,7 @@ public sealed class SkillDescriptionFormatterTests
         var repository = TestContentFactory.CreateRepository(
             internalSkills: [skill],
             talents: [talent]);
-        skill.Resolve(repository);
+        ContentReferenceGraph.Resolve(skill, repository);
 
         var owner = CreateOwner();
         var instance = new InternalSkillInstance(skill, owner)
@@ -205,10 +205,10 @@ public sealed class SkillDescriptionFormatterTests
             talents: [talent],
             legendSkills: [legend],
             buffs: [buff]);
-        startSkill.Resolve(repository);
-        requiredSkill.Resolve(repository);
-        internalSkill.Resolve(repository);
-        legend.Resolve(repository);
+        ContentReferenceGraph.Resolve(startSkill, repository);
+        ContentReferenceGraph.Resolve(requiredSkill, repository);
+        ContentReferenceGraph.Resolve(internalSkill, repository);
+        ContentReferenceGraph.Resolve(legend, repository);
 
         var owner = CreateOwner();
         var parent = new ExternalSkillInstance(startSkill, owner, true)
@@ -257,7 +257,7 @@ public sealed class SkillDescriptionFormatterTests
             castSize: 2,
             formSkills: [form]);
         var repository = TestContentFactory.CreateRepository(externalSkills: [external]);
-        external.Resolve(repository);
+        ContentReferenceGraph.Resolve(external, repository);
 
         var owner = CreateOwner();
         var parent = new ExternalSkillInstance(external, owner, true)
@@ -303,7 +303,7 @@ public sealed class SkillDescriptionFormatterTests
         var repository = TestContentFactory.CreateRepository(
             specialSkills: [skill],
             buffs: [buff]);
-        skill.Resolve(repository);
+        ContentReferenceGraph.Resolve(skill, repository);
 
         var instance = new SpecialSkillInstance(skill, CreateOwner(), true)
         {

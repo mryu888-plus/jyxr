@@ -5,50 +5,44 @@ namespace Game.Core.Definitions.Skills;
 
 [method: JsonConstructor]
 public sealed record InitialExternalSkillEntryDefinition(
-    string Id,
+    [property: JsonPropertyName("id")] ContentReference<ExternalSkillDefinition> SkillReference,
     int Level = 1,
     int? MaxLevel = null)
 {
-    [JsonIgnore]
-    public ExternalSkillDefinition Skill { get; private set; } = null!;
-
     public InitialExternalSkillEntryDefinition(
         ExternalSkillDefinition skill,
         int Level = 1,
         int? MaxLevel = null)
-        : this(skill.Id, Level, MaxLevel)
+        : this(new ContentReference<ExternalSkillDefinition>(skill.Id, skill), Level, MaxLevel)
     {
-        Skill = skill;
     }
 
-    public void Resolve(IContentRepository contentRepository)
-    {
-        Skill = contentRepository.GetExternalSkill(Id);
-    }
+    [JsonIgnore]
+    public string Id => SkillReference.Id;
+
+    [JsonIgnore]
+    public ExternalSkillDefinition Skill => SkillReference.Definition;
 }
 
 [method: JsonConstructor]
 public sealed record InitialInternalSkillEntryDefinition(
-    string Id,
+    [property: JsonPropertyName("id")] ContentReference<InternalSkillDefinition> SkillReference,
     int Level = 1,
     int? MaxLevel = null,
     bool Equipped = false)
 {
-    [JsonIgnore]
-    public InternalSkillDefinition Skill { get; private set; } = null!;
-
     public InitialInternalSkillEntryDefinition(
         InternalSkillDefinition skill,
         int Level = 1,
         int? MaxLevel = null,
         bool Equipped = false)
-        : this(skill.Id, Level, MaxLevel, Equipped)
+        : this(new ContentReference<InternalSkillDefinition>(skill.Id, skill), Level, MaxLevel, Equipped)
     {
-        Skill = skill;
     }
 
-    public void Resolve(IContentRepository contentRepository)
-    {
-        Skill = contentRepository.GetInternalSkill(Id);
-    }
+    [JsonIgnore]
+    public string Id => SkillReference.Id;
+
+    [JsonIgnore]
+    public InternalSkillDefinition Skill => SkillReference.Definition;
 }

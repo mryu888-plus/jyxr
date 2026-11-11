@@ -1,13 +1,19 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 using Game.Core.Model;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record CoupleUnityBattleEffectParameters(
-    [property: NotWhiteSpace] string TalentId,
+    [property: JsonPropertyName("talentId")] ContentReference<TalentDefinition> TalentReference,
     [property: NonNegative] double MinimumFactor = 1.2d,
     [property: NonNegative] double MaximumFactor = 2d,
-    BattleSpeechDefinition? Speech = null);
+    BattleSpeechDefinition? Speech = null)
+{
+    [JsonIgnore]
+    public string TalentId => TalentReference.Id;
+}
 
 internal sealed class CoupleUnityAttackBattleEffectHandler
     : CustomBattleEffectHandler<CoupleUnityBattleEffectParameters, IDamageCalculationEffectContext>

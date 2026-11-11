@@ -29,12 +29,4 @@ public sealed record InternalSkillDefinition
     public IReadOnlyList<FormSkillDefinition> FormSkills { get; init; } = [];
 
     public IReadOnlyList<SkillAffixDefinition> Affixes { get; init; } = [];
-
-    public void Resolve(IContentRepository contentRepository)
-    {
-        foreach (var formSkill in FormSkills)
-        {
-            formSkill.Resolve(contentRepository);
-        }
-    }
 }

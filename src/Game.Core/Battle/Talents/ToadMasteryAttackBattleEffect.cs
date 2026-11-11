@@ -1,15 +1,22 @@
+using Game.Core.Definitions.Skills;
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record ToadMasteryAttackBattleEffectParameters(
     [property: NotWhiteSpace] string SkillNameFragment,
-    [property: NotWhiteSpace] string InternalSkillId,
+    [property: JsonPropertyName("internalSkillId")] ContentReference<InternalSkillDefinition> InternalSkillReference,
     [property: NonNegative] double SkillAttackBonus,
     [property: NonNegative] double InternalSkillAttackBonus,
     [property: Probability] double SpeechChance,
     IReadOnlyList<string> SkillSpeechLines,
-    IReadOnlyList<string> InternalSkillSpeechLines);
+    IReadOnlyList<string> InternalSkillSpeechLines)
+{
+    [JsonIgnore]
+    public string InternalSkillId => InternalSkillReference.Id;
+}
 
 internal sealed class ToadMasteryAttackBattleEffectHandler
     : CustomBattleEffectHandler<ToadMasteryAttackBattleEffectParameters, IDamageCalculationEffectContext>

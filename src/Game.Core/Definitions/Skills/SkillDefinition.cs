@@ -74,27 +74,23 @@ public static class SkillTargetingDefaults
 
 [method: JsonConstructor]
 public sealed record SkillBuffDefinition(
-    string Id,
+    [property: JsonPropertyName("id")] ContentReference<BuffDefinition> BuffReference,
     int Level = 1,
     int Duration = 3,
     int? Chance = null)
 {
-
-    [JsonIgnore]
-    public BuffDefinition Buff { get; private set; } = null!;
-
     public SkillBuffDefinition(
         BuffDefinition buff,
         int level = 1,
         int duration = 3,
         int? chance = null)
-        : this(buff.Id, level, duration, chance)
+        : this(new ContentReference<BuffDefinition>(buff.Id, buff), level, duration, chance)
     {
-        Buff = buff;
     }
 
-    public void Resolve(IContentRepository contentRepository)
-    {
-        Buff = contentRepository.GetBuff(Id);
-    }
+    [JsonIgnore]
+    public string Id => BuffReference.Id;
+
+    [JsonIgnore]
+    public BuffDefinition Buff => BuffReference.Definition;
 }

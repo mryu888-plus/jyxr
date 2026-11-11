@@ -51,7 +51,7 @@ public sealed class CharacterTalentTests
             Name = "Radiance",
         };
         var grantRadiance = new GrantTalentAffix("radiance");
-        grantRadiance.Resolve(TestContentFactory.CreateRepository(talents: [radiance]));
+        ContentReferenceGraph.Resolve(grantRadiance, TestContentFactory.CreateRepository(talents: [radiance]));
         var internalSkill = TestContentFactory.CreateInternalSkill(
             "inner_light",
             affixes:
@@ -170,7 +170,7 @@ public sealed class CharacterTalentTests
         };
         var repository = TestContentFactory.CreateRepository(talents: [lower, upper]);
         var grantLower = new GrantTalentAffix("qiankun_shift");
-        grantLower.Resolve(repository);
+        ContentReferenceGraph.Resolve(grantLower, repository);
         var skill = TestContentFactory.CreateExternalSkill(
             "grant_lower",
             affixes:
@@ -211,7 +211,7 @@ public sealed class CharacterTalentTests
             ],
         };
         var grantAffix = new GrantTalentAffix("battle_focus");
-        grantAffix.Resolve(TestContentFactory.CreateRepository(talents: [battleFocus]));
+        ContentReferenceGraph.Resolve(grantAffix, TestContentFactory.CreateRepository(talents: [battleFocus]));
         var skill = TestContentFactory.CreateExternalSkill(
             "late_focus",
             affixes:

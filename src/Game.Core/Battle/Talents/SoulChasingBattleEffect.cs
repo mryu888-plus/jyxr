@@ -1,12 +1,18 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 using Game.Core.Model;
 
 namespace Game.Core.Battle.Talents;
 
 public sealed record SoulChasingBattleEffectParameters(
-    [property: NotWhiteSpace] string BuffId,
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference,
     [property: Probability] double SpeechChance,
-    IReadOnlyList<string> SpeechLines);
+    IReadOnlyList<string> SpeechLines)
+{
+    [JsonIgnore]
+    public string BuffId => BuffReference.Id;
+}
 
 internal sealed class SoulChasingBattleEffectHandler
     : CustomBattleEffectHandler<SoulChasingBattleEffectParameters, IHitConfirmedEffectContext>

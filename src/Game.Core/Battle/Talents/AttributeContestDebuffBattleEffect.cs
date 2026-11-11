@@ -1,3 +1,5 @@
+using Game.Core.Definitions;
+using System.Text.Json.Serialization;
 using Game.Core.Affix;
 using Game.Core.Model;
 
@@ -7,11 +9,15 @@ public sealed record AttributeContestDebuffBattleEffectParameters(
     StatType SourceStat,
     StatType TargetStat,
     [property: NonNegative] double Scale,
-    [property: NotWhiteSpace] string BuffId,
+    [property: JsonPropertyName("buffId")] ContentReference<BuffDefinition> BuffReference,
     [property: NonNegative] int Level,
     [property: Positive] int Duration,
     [property: Probability] double MinimumChance = 0d,
-    [property: Probability] double MaximumChance = 1d);
+    [property: Probability] double MaximumChance = 1d)
+{
+    [JsonIgnore]
+    public string BuffId => BuffReference.Id;
+}
 
 internal sealed class AttributeContestDebuffBattleEffectHandler
     : CustomBattleEffectHandler<AttributeContestDebuffBattleEffectParameters, IHitConfirmedEffectContext>
