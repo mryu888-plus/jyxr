@@ -12,6 +12,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("change_silver")]
     [InlineData("change_yuanbao")]
     [InlineData("shop_stock")]
+    [InlineData("parallel")]
     [InlineData("advance_days")]
     [InlineData("set_round")]
     [InlineData("set_difficulty")]

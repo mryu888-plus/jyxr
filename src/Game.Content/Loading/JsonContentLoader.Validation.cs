@@ -1553,6 +1553,7 @@ public sealed partial class JsonContentLoader
                 case CommandStep command:
                     ValidateStoryMediaCommand(command.Call, repository, ownerName);
                     ValidateMapCommandReference(repository, command.Call, ownerName);
+                    ValidateParallelTracks(command.Call, repository, ownerName);
                     break;
                 case JumpStep jump:
                     Ensure(repository.StorySegments.ContainsKey(jump.Target),
@@ -1777,6 +1778,32 @@ public sealed partial class JsonContentLoader
 
     private static bool IsMapCommand(string name) =>
         name is "map" or "set_map" or "tutorial";
+
+    /// <summary>parallel(...) 的轨道必须存在，且只包含指令与变量步骤（不能有对白、选项、跳转或战斗）。</summary>
+    private static void ValidateParallelTracks(ParsedCall call, InMemoryContentRepository repository, string ownerName)
+    {
+        if (call.Root.Name != "parallel" ||
+            call.Root.Arguments.Count == 0 ||
+            call.Root.Arguments[0] is not ListExpressionSyntax list)
+        {
+            return;
+        }
+
+        Ensure(list.Items.Count > 0, $"{ownerName} parallel requires at least one track.");
+        foreach (var item in list.Items)
+        {
+            if (item is not LiteralExpressionSyntax { Value.Kind: ExpressionValueKind.String } literal)
+            {
+                continue;
+            }
+
+            var trackId = literal.Value.AsString("parallel track");
+            Ensure(repository.StorySegments.TryGetValue(trackId, out var track),
+                $"{ownerName} parallel references missing track '{trackId}'.");
+            Ensure(track!.Segment.Steps.All(static step => step is CommandStep or SetVariableStep or DeleteVariableStep),
+                $"{ownerName} parallel track '{trackId}' may only contain commands.");
+        }
+    }
 
     private static bool TryGetLiteralArgument(ParsedCall action, int index, out string value)
     {

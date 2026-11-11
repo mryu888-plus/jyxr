@@ -375,6 +375,28 @@ internal sealed class SpecialFlowStoryCommands
         _host = host;
     }
 
+    /// <summary>
+    /// 多轨演出：同时执行若干只含指令的剧情段（每段一条轨道，如镜头/震屏、音效、背景、人物立绘），全部结束后才继续。
+    /// 轨道内按顺序执行，轨道之间并行；对白、选项、战斗等交互步骤在内容加载时就被拒绝。
+    /// </summary>
+    [StoryCommand("parallel")]
+    public async ValueTask Parallel(IReadOnlyList<string> trackIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(trackIds);
+        if (trackIds.Count == 0)
+        {
+            throw new InvalidOperationException("parallel requires at least one track.");
+        }
+
+        foreach (var trackId in trackIds)
+        {
+            _session.ContentRepository.GetStorySegment(trackId);
+        }
+
+        await Task.WhenAll(trackIds.Select(trackId =>
+            _session.StoryService.ExecuteAsync(trackId, cancellationToken: cancellationToken)));
+    }
+
     [StoryCommand("minigame", "game")]
     public ValueTask<StoryCommandResult> Minigame(string gameId, CancellationToken cancellationToken) =>
         _session.MiniGameService.RunAsync(_host, gameId, cancellationToken);
