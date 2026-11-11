@@ -29,6 +29,7 @@ public interface IBattleFlowContext
 	SkillInstance? ResolveDefaultSkill(BattleUnit actingUnit);
 	SkillInstance? ResolveSkill(BattleUnit actingUnit, string? skillId);
 	Task<InventoryEntry?> ShowItemPanelAsync();
+	void ShowCommandFailure(BattleCommandFailure failure);
 	void ShowStatusPanel();
 	bool TryGetBattleResult(out bool isWin);
 	Task CompleteBattleAsync(bool isWin);

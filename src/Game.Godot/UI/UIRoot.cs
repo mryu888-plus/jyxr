@@ -99,6 +99,7 @@ public partial class UIRoot : Control
 	private DetailPanelHost _detailPanelHost = null!;
 	private SessionEvents? _sessionEvents;
 	private readonly List<IDisposable> _sessionSubscriptions = [];
+	private SessionFlowScope? _sessionFlowScope;
 	private Control? _mainPanel;
 	private Control? _popupPanel;
 	private bool _isStoryPresentationActive;
@@ -233,6 +234,7 @@ public partial class UIRoot : Control
 		}
 
 		_sessionEvents = session.Events;
+		_sessionFlowScope = new SessionFlowScope(_sessionEvents);
 		_sessionSubscriptions.Add(_sessionEvents.Subscribe<MapChangedEvent>(OnMapChanged));
 		_sessionSubscriptions.Add(_sessionEvents.Subscribe<MapReturnedEvent>(OnMapReturned));
 		_sessionSubscriptions.Add(_sessionEvents.Subscribe<ClockChangedEvent>(OnClockChanged));
@@ -321,7 +323,8 @@ public partial class UIRoot : Control
 
 			shopPanel.Configure(shopId);
 		});
-		await AwaitPanelClosedAsync(panel, cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		await AwaitPanelClosedAsync(panel, flow.Token);
 	}
 
 	public async Task ShowChestPanelAsync(CancellationToken cancellationToken = default)
@@ -333,7 +336,8 @@ public partial class UIRoot : Control
 				throw new InvalidOperationException("Chest panel scene root must be ChestPanel.");
 			}
 		});
-		await AwaitPanelClosedAsync(panel, cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		await AwaitPanelClosedAsync(panel, flow.Token);
 	}
 
 	public async Task<IReadOnlyList<string>> ShowCombatantSelectPanelAsync(string battleId, CancellationToken cancellationToken = default) =>
@@ -360,7 +364,8 @@ public partial class UIRoot : Control
 
 		ModalLayer.AddChild(panel);
 		panel.Configure(battle, forbiddenCharacterIds);
-		return await panel.AwaitDeploymentAsync(cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		return await panel.AwaitDeploymentAsync(flow.Token);
 	}
 
 	public async Task<bool> ShowBattleScreenAsync(
@@ -387,7 +392,8 @@ public partial class UIRoot : Control
 
 		ModalLayer.AddChild(panel);
 		panel.Configure(entries);
-		return await panel.AwaitSelectionAsync(cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		return await panel.AwaitSelectionAsync(flow.Token);
 	}
 
 	public async Task<int> ShowLightnessTrainingScreenAsync(CancellationToken cancellationToken = default)
@@ -425,7 +431,8 @@ public partial class UIRoot : Control
 		}
 
 		ModalLayer.AddChild(screen);
-		return await screen.AwaitSelectionAsync(cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		return await screen.AwaitSelectionAsync(flow.Token);
 	}
 
 	public async Task<string> ShowInputNamePanelAsync(
@@ -439,7 +446,8 @@ public partial class UIRoot : Control
 		}
 
 		ModalLayer.AddChild(panel);
-		return await panel.AwaitNameAsync(characterId, defaultName, cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		return await panel.AwaitNameAsync(characterId, defaultName, flow.Token);
 	}
 
 	public async Task<string> ShowSelectHeadPanelAsync(CancellationToken cancellationToken = default)
@@ -450,7 +458,8 @@ public partial class UIRoot : Control
 		}
 
 		ModalLayer.AddChild(panel);
-		return await panel.AwaitHeadAsync(cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		return await panel.AwaitHeadAsync(flow.Token);
 	}
 
 	public async Task ShowRollStatsPanelAsync(string characterId, CancellationToken cancellationToken = default)
@@ -461,7 +470,8 @@ public partial class UIRoot : Control
 		}
 
 		ModalLayer.AddChild(panel);
-		await panel.AwaitRollAsync(characterId, cancellationToken);
+		using var flow = LinkSessionFlow(cancellationToken);
+		await panel.AwaitRollAsync(characterId, flow.Token);
 	}
 
 	public void CloseMainPanel()
@@ -571,7 +581,29 @@ public partial class UIRoot : Control
 		string text,
 		ConfirmDialogTone tone = ConfirmDialogTone.Normal,
 		CancellationToken cancellationToken = default) =>
-		_confirmDialog.ShowConfirmAsync(text, tone, cancellationToken);
+		ShowConfirmInSessionFlowAsync(text, tone, cancellationToken);
+
+	/// <summary>读档作废当前会话流程时，确认框按“未确认”结束，避免旧确认结果作用到新状态。</summary>
+	private async Task<bool> ShowConfirmInSessionFlowAsync(
+		string text,
+		ConfirmDialogTone tone,
+		CancellationToken cancellationToken)
+	{
+		using var flow = LinkSessionFlow(cancellationToken);
+		try
+		{
+			return await _confirmDialog.ShowConfirmAsync(text, tone, flow.Token);
+		}
+		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			return false;
+		}
+	}
+
+	/// <summary>把宿主模态流程挂到当前会话作用域：读档时统一取消，面板随取消关闭。</summary>
+	private CancellationTokenSource LinkSessionFlow(CancellationToken cancellationToken) =>
+		_sessionFlowScope?.Link(cancellationToken) ??
+		CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
 	public void ShowToast(string text, ToastTone tone = ToastTone.Normal, string? soundEffectId = null)
 	{
@@ -776,5 +808,7 @@ public partial class UIRoot : Control
 		}
 
 		_sessionSubscriptions.Clear();
+		_sessionFlowScope?.Dispose();
+		_sessionFlowScope = null;
 	}
 }

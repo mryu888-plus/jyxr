@@ -160,64 +160,31 @@ public sealed partial class BattleEngine
 
         var unit = state.GetUnit(unitId);
         var target = state.TryGetUnit(targetUnitId);
-        if (target is null || !target.IsAlive)
+        if (BattleItemAvailability.ValidateTarget(state, unit, target) is { } targetFailure)
         {
             return BattleCommandResult<BattleActionResult>.Failed(
-                BattleCommandFailureReason.InvalidItemTarget,
-                command.Messages);
-        }
-
-        if (target.Id != unit.Id)
-        {
-            if (state.AreEnemies(unit, target))
-            {
-                return BattleCommandResult<BattleActionResult>.Failed(
-                    BattleCommandFailureReason.ItemCannotTargetEnemy,
-                    command.Messages);
-            }
-
-            if (!unit.HasTrait(TraitId.CanUseItemOnAlly))
-            {
-                return BattleCommandResult<BattleActionResult>.Failed(
-                    BattleCommandFailureReason.ItemCannotTargetAlly,
-                    command.Messages);
-            }
-
-            if (unit.Position.ManhattanDistanceTo(target.Position) > 2)
-            {
-                return BattleCommandResult<BattleActionResult>.Failed(
-                    BattleCommandFailureReason.AllyItemTargetOutOfRange,
-                    command.Messages);
-            }
-        }
-        var useItemCooldown = IsItemCooldownEnabled(state.RuleSettings);
-        if (useItemCooldown && target.ItemCooldown > 0 && !unit.HasTrait(TraitId.IgnoreItemCooldown))
-        {
-            return BattleCommandResult<BattleActionResult>.Failed(
-                BattleCommandFailureReason.ItemOnCooldown,
+                targetFailure.Reason,
                 command.Messages,
-                remainingTurns: target.ItemCooldown);
+                remainingTurns: targetFailure.RemainingTurns);
         }
 
+        var itemTarget = target!;
+        var useItemCooldown = BattleItemAvailability.IsItemCooldownEnabled(state.RuleSettings);
         TriggerHooks(state, HookTiming.BeforeItemUse, unit);
-        ApplyItemEffects(state, unit, target, item.UseEffects);
+        ApplyItemEffects(state, unit, itemTarget, item.UseEffects);
         if (useItemCooldown)
         {
-            target.AddItemCooldown(item.Cooldown);
+            itemTarget.AddItemCooldown(item.Cooldown);
         }
-        UpdateFacingByTarget(unit, target.Position);
+        UpdateFacingByTarget(unit, itemTarget.Position);
 
         var battleEvent = new BattleFact(BattleFactKind.ItemUsed, unit.Id, detail: item.Id);
         AddMessage(state, battleEvent);
         TriggerHooks(state, HookTiming.AfterItemUse, unit);
         EndActionCore(state, unit, committedMainAction: true);
         return BattleCommandResult<BattleActionResult>.Succeeded(
-            new BattleActionResult([target.Id], []), command.Messages);
+            new BattleActionResult([itemTarget.Id], []), command.Messages);
     }
-
-    private static bool IsItemCooldownEnabled(BattleRuleSettings ruleSettings) =>
-        !ruleSettings.EnableDifficultyItemCooldownRules ||
-        ruleSettings.Difficulty != GameDifficulty.Normal;
 
     public BattleCommandResult<BattleActionResult> Rest(BattleState state, string unitId)
     {

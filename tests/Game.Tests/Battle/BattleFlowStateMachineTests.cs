@@ -231,6 +231,7 @@ public sealed class BattleFlowStateMachineTests
 		public SkillInstance? ResolveDefaultSkill(BattleUnit actingUnit) => throw new NotSupportedException();
 		public SkillInstance? ResolveSkill(BattleUnit actingUnit, string? skillId) => throw new NotSupportedException();
 		public Task<InventoryEntry?> ShowItemPanelAsync() => ItemSelection;
+		public void ShowCommandFailure(BattleCommandFailure failure) { }
 		public void ShowStatusPanel() => throw new NotSupportedException();
 		public bool TryGetBattleResult(out bool isWin) { isWin = false; return IsSurrenderRequested; }
 		public Task CompleteBattleAsync(bool isWin) { CompleteBattleCount++; return Task.CompletedTask; }

@@ -234,6 +234,9 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 	public async Task<InventoryEntry?> ShowItemPanelAsync() =>
 		await _screen.ShowItemPanelAsync();
 
+	public void ShowCommandFailure(BattleCommandFailure failure) =>
+		_screen.PresentCommandFailure(failure);
+
 	public void ShowStatusPanel() => _screen.ShowStatusPanel();
 
 	public bool TryGetBattleResult(out bool isWin)

@@ -28,6 +28,7 @@
 - 运行态角色、技能和装备可直接持有已解析 definition；持久化记录只保存稳定 ID 与实例状态。
 - [SaveGameService](../src/Game.Application/SaveGameService.cs) 恢复子状态后调用 `ReplaceState(...)`；档案加载使用 `ReplaceProfile(...)`。服务实例不重建，不长期缓存可被读档替换的状态。
 - 异步操作应保留发起时的状态身份，完成时确认仍属于同一状态；取消宿主等待与拒绝旧结果写入是两个不同职责。
+- 读档时等待中的宿主 UI 流程统一由 [SessionFlowScope](../src/Game.Application/SessionFlowScope.cs) 作废：`SaveLoadedEvent` 取消当前作用域并换新，`UIRoot` 的模态流程（确认框、出战选择、商店、仓库、选择/输入面板）都关联到该作用域，界面随取消关闭；确认框把作废视为“未确认”返回 `false`，其余流程以 `OperationCanceledException` 结束，旧选择结果不会进入新状态。新增模态流程时经 `UIRoot.LinkSessionFlow(...)` 关联，不再各自订阅 `SaveLoadedEvent` 补丁式关闭。
 
 本地存档文件是 `LocalSaveEnvelope`（`Game.Application.Persistence`）。v4 起信封带 `Metadata`（队首名字与头像、队伍人数、周目、难度、时间、地图、无悔、游玩时长和玩家备注），序列化时 `Version`、`SavedAtUtc`、`Mods`、`Metadata` 都排在 `SaveGame` 之前；存档列表用 `LocalSaveEnvelopeHeaderReader` 流式读取文件开头，读到 `SaveGame` 属性名即停止，不反序列化完整存档。v1~v3 没有 metadata，列表回退到完整读取，从 `SaveGame` 现算摘要；读档本身对所有版本走完整读取。手动存档后可选填备注，`LocalSaveStore.SetNote` 只改信封 metadata（同时升级到 v4），不改存档内容与保存时间。
 

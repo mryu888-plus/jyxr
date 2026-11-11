@@ -91,6 +91,19 @@ public abstract class InteractiveBattleFlowState : BattleFlowState
 				await machine.TransitionAsync(new SelectingSkillTargetState(skill));
 				break;
 			case BattleUiIntent.OpenItems:
+				// 与 BattleEngine.UseItem 共用目标规则：没有任何可用目标时直接提示，不打开物品面板。
+				var itemAvailability = BattleItemAvailability.Evaluate(context.State, actingUnit);
+				if (!itemAvailability.CanOpen)
+				{
+					if (itemAvailability.BlockingFailure is { } itemFailure)
+					{
+						context.ShowCommandFailure(itemFailure);
+					}
+
+					context.CommitBattleStateToView(Interaction);
+					break;
+				}
+
 				await machine.TransitionAsync(new SelectingItemState(this));
 				break;
 			case BattleUiIntent.OpenStatus:
@@ -278,6 +291,13 @@ public sealed class SelectingItemTargetState(
 		if (intent is not BattleUiIntent.ActivateCell(var position) ||
 			machine.Context.State.GetUnitAt(position) is not { } target)
 		{
+			return;
+		}
+
+		if (BattleItemAvailability.ValidateTarget(machine.Context.State, actingUnit, target) is { } targetFailure)
+		{
+			machine.Context.ShowCommandFailure(targetFailure);
+			machine.Context.CommitBattleStateToView(Interaction);
 			return;
 		}
 

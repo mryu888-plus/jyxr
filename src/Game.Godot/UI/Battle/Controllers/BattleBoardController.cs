@@ -113,11 +113,9 @@ internal sealed class BattleBoardController(
     }
 
     private static IReadOnlySet<GridPosition> ResolveItemTargets(BattleState state, BattleUnit unit) =>
-        !unit.HasTrait(TraitId.CanUseItemOnAlly)
-            ? new HashSet<GridPosition> { unit.Position }
-            : state.Units.Where(candidate => candidate.IsAlive && candidate.Team == unit.Team &&
-                    candidate.Position.ManhattanDistanceTo(unit.Position) <= 2)
-                .Select(static candidate => candidate.Position).ToHashSet();
+        BattleItemAvailability.Evaluate(state, unit).AvailableTargets
+            .Select(static candidate => candidate.Position)
+            .ToHashSet();
 
     private static bool CanClick(GridPosition position, Highlights value) =>
         value.Move.Contains(position) || value.Skill.Contains(position) || value.Items.Contains(position);
