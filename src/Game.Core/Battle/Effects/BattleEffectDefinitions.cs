@@ -70,6 +70,7 @@ public sealed record ExplicitUnitsBattleUnitSelectorDefinition : BattleUnitSelec
 [JsonDerivedType(typeof(CustomBattleEffectDefinition), "custom")]
 [JsonDerivedType(typeof(CustomAbilityBattleEffectDefinition), "custom_ability")]
 [JsonDerivedType(typeof(GrantScopedBattleEffectDefinition), "grant_scoped_battle_effect")]
+[JsonDerivedType(typeof(RelocateBattleEffectDefinition), "relocate")]
 public abstract record BattleEffectDefinition;
 
 public sealed record GrantScopedBattleEffectDefinition(
@@ -138,6 +139,12 @@ public sealed record AddHpBattleEffectDefinition(
 public sealed record AddMpBattleEffectDefinition(
     BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
+
+/// <summary>强制位置变化：push/pull 相对效果来源推离/拉近 <see cref="Distance"/> 格，swap 与来源互换位置。规则见 BattleRelocationResolver。</summary>
+public sealed record RelocateBattleEffectDefinition(
+    BattleUnitSelectorDefinition Target,
+    BattleRelocationKind Kind,
+    int Distance = 1) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record ModifyLifestealBattleHookEffectDefinition(
     double Factor,

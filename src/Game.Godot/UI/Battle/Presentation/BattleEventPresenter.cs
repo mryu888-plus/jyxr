@@ -124,6 +124,15 @@ internal sealed class BattleEventPresenter(
             case BattleFactKind.UnitDefeated:
                 AppendLog($"{unitName} 被击败。");
                 break;
+            case BattleFactKind.Relocated when fact.Relocation is { } relocation:
+                AppendLog(relocation.Kind switch
+                {
+                    BattleRelocationKind.Push => $"{unitName} 被击退。",
+                    BattleRelocationKind.Pull => $"{unitName} 被拉近。",
+                    BattleRelocationKind.Swap => $"{unitName} 换了位置。",
+                    _ => $"{unitName} 被移到了别处。",
+                });
+                break;
             case BattleFactKind.ScopedEffectGranted:
                 AppendLog($"战场效果【{fact.Detail}】生效。");
                 break;

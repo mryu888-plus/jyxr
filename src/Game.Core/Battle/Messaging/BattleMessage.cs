@@ -19,7 +19,8 @@ public sealed record BattleFact : BattleMessage
         BattleSkillExperienceEvent? skillExperience = null,
         BattleCharacterExperienceEvent? characterExperience = null,
         BattleLifestealEvent? lifesteal = null,
-        BattleBuffReductionEvent? buffReduction = null)
+        BattleBuffReductionEvent? buffReduction = null,
+        BattleRelocationEvent? relocation = null)
         : base(unitId, timing)
     {
         Kind = kind;
@@ -31,7 +32,11 @@ public sealed record BattleFact : BattleMessage
         CharacterExperience = characterExperience;
         Lifesteal = lifesteal;
         BuffReduction = buffReduction;
+        Relocation = relocation;
     }
+
+    /// <summary>强制位置变化（<see cref="BattleFactKind.Relocated"/>）的起止格与种类。</summary>
+    public BattleRelocationEvent? Relocation { get; }
 
     public BattleFactKind Kind { get; }
     public string? Detail { get; }
@@ -111,6 +116,7 @@ public enum BattleFactKind
     ScopedEffectRemoved,
     SkillLeveledUp,
     CharacterLeveledUp,
+    Relocated,
 }
 
 public enum BattleCueKind

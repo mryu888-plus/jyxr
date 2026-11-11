@@ -939,6 +939,7 @@ public sealed partial class JsonContentLoader
                 case CancelHitBattleHookEffectDefinition:
                 case SetHitSuccessBattleHookEffectDefinition:
                 case ExtraStrikeBattleHookEffectDefinition:
+                case RelocateBattleEffectDefinition:
                     ValidateSharedBattleEffect(effect, $"{ownerName} battle hook '{hook.Timing}'", repository);
                     break;
                 case CustomBattleEffectDefinition:
@@ -1069,6 +1070,14 @@ public sealed partial class JsonContentLoader
                 break;
             case CancelHitBattleHookEffectDefinition:
             case SetHitSuccessBattleHookEffectDefinition:
+                break;
+            case RelocateBattleEffectDefinition relocate:
+                Ensure(relocate.Target is not null, $"{ownerName} relocate effect is missing target.");
+                Ensure(relocate.Kind is BattleRelocationKind.Push or BattleRelocationKind.Pull or BattleRelocationKind.Swap,
+                    $"{ownerName} relocate effect has unsupported kind '{relocate.Kind}'.");
+                Ensure(relocate.Kind == BattleRelocationKind.Swap || relocate.Distance >= 1,
+                    $"{ownerName} relocate effect has invalid distance '{relocate.Distance}'.");
+                ValidateBattleUnitSelector(relocate.Target!, ownerName, null);
                 break;
             case ExtraStrikeBattleHookEffectDefinition extraStrike:
                 Ensure(extraStrike.Target is not null, $"{ownerName} extra_strike effect is missing target.");

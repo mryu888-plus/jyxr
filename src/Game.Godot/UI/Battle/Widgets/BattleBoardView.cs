@@ -9,6 +9,8 @@ public partial class BattleBoardView : Control
 {
 	private const int CellTextFontSize = 13;
 	private const double StepMoveDurationSeconds = 0.3d;
+	private const double RelocationSecondsPerCell = 0.12d;
+	private const double RelocationFadeSeconds = 0.15d;
 	private const double FloatTextQueueInitialDelaySeconds = 0.1d;
 	private const double FloatTextQueueSpacingSeconds = 0.4d;
 	private const float FloatTextHeadOffsetY = 90f;
@@ -195,6 +197,55 @@ public partial class BattleBoardView : Control
 		tween.TweenProperty(unitView, "position", targetPosition, durationSeconds)
 			.SetTrans(Tween.TransitionType.Linear)
 			.SetEase(Tween.EaseType.InOut);
+		await ToSignal(tween, Tween.SignalName.Finished);
+	}
+
+	/// <summary>
+	/// 强制位移演出：被推/拉的单位做受击动作滑到落点，交换双方同时滑动，传送先淡出再在落点淡入。
+	/// 全部完成后才返回，调用方据此等待后再提交最终画面。
+	/// </summary>
+	public async Task PlayUnitRelocationsAsync(IReadOnlyList<BattleRelocationVisual> relocations)
+	{
+		ArgumentNullException.ThrowIfNull(relocations);
+		var tasks = relocations
+			.Where(relocation => _unitViews.ContainsKey(relocation.UnitId))
+			.Select(PlayUnitRelocationAsync)
+			.ToArray();
+		await Task.WhenAll(tasks);
+	}
+
+	private async Task PlayUnitRelocationAsync(BattleRelocationVisual relocation)
+	{
+		var unitView = _unitViews[relocation.UnitId];
+		var targetPosition = ResolveUnitAnchor(relocation.To);
+		if (relocation.Kind == BattleRelocationKind.Teleport)
+		{
+			await TweenUnitAlphaAsync(unitView, 0f, RelocationFadeSeconds);
+			unitView.Position = targetPosition;
+			SetPresentedUnitPosition(relocation.UnitId, relocation.To);
+			await TweenUnitAlphaAsync(unitView, 1f, RelocationFadeSeconds);
+			return;
+		}
+
+		if (relocation.Kind is BattleRelocationKind.Push or BattleRelocationKind.Pull)
+		{
+			unitView.PlayHit();
+		}
+
+		var cells = Math.Max(1, Math.Abs(relocation.To.X - relocation.From.X) + Math.Abs(relocation.To.Y - relocation.From.Y));
+		var tween = CreateTween();
+		tween.TweenProperty(unitView, "position", targetPosition, RelocationSecondsPerCell * cells)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		await ToSignal(tween, Tween.SignalName.Finished);
+		SetPresentedUnitPosition(relocation.UnitId, relocation.To);
+		unitView.PlayIdle();
+	}
+
+	private async Task TweenUnitAlphaAsync(BattleUnitView unitView, float alpha, double durationSeconds)
+	{
+		var tween = CreateTween();
+		tween.TweenProperty(unitView, "modulate:a", alpha, durationSeconds);
 		await ToSignal(tween, Tween.SignalName.Finished);
 	}
 
@@ -608,3 +659,10 @@ public enum BattleMovementPresentationMode
 	Instant,
 	Step,
 }
+
+/// <summary>一次强制位移的画面数据，来自 <see cref="BattleFactKind.Relocated"/> 事实。</summary>
+public sealed record BattleRelocationVisual(
+	string UnitId,
+	GridPosition From,
+	GridPosition To,
+	BattleRelocationKind Kind);

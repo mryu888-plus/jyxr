@@ -59,6 +59,15 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
 - 无攻击候选时，按原版有一半机会对自己施放辅助特殊技能；先排除预览有害的技能，并优先在有正收益的技能中随机选择。
 - 固定基准 `tests/Game.AiBenchmarks`（`dotnet run -c Release --project tests/Game.AiBenchmarks`）输出小型、常规与候选密集战场的平均决策耗时、分配量与决策摘要；加 `-- --content mods/jyxr-base` 则用真实 MOD 数据跑 AI 对战冒烟并实际执行每个计划；`BattleAiRegressionTests` 锁定这些战场的决策与分配量上限。有意修改 AI 规则导致基准决策变化时，重新生成基线。
 
+### 位置变化
+
+效果造成的强制位移统一经 `BattleRelocationResolver`，不借用伤害流程，也不复用主动移动：
+
+- 种类：`push` 沿“来源→目标”方向推离、`pull` 拉近且最多贴到来源身边、`swap` 与来源互换，`teleport` 只供定制效果按自身规则算好落点后使用；数据效果 `relocate`（`target`、`kind`、`distance`）只接受前三种，可用于特殊技能效果以及 `OnHitConfirmed`、`AfterSkillCast` hook，不能在预览中执行。
+- 落点必须在棋盘内、可通行且无其他存活单位；推拉逐格前进，遇到第一个不可用格停下，交换与传送要求落点可用。带 `CannotMove` 特性的单位免疫强制位移；强制位移忽略控制区、不消耗行动力。
+- 每个实际移动的单位产生 `BattleFactKind.Relocated`，载荷 `BattleRelocationEvent` 记录起止格、种类和来源；不新增 hook 时机，同一效果后续步骤直接看到新位置。玩家/AI 主动移动仍是 `Moved`。
+- 过肩摔、神龙摆尾、飞向天际等定制效果都经同一 resolver 产生事实。
+
 ## 命令与消息
 
 所有改变状态的引擎命令返回 `BattleCommandResult<T>`：
@@ -105,7 +114,7 @@ Presentation 负责与 UI 引擎无关的交互状态和展示流程；Godot 负
 - `BattleBoardController`：被动渲染棋盘单位与目标高亮；
 - `BattleActionPanelController`：被动渲染行动按钮、技能和物品/状态面板；
 - `BattleEventPresenter`：Fact、Cue 的宿主呈现；Trace 当前保留给按需诊断，不进入玩家表现；
-- `BattleSkillPresentationController`：技能与移动演出；
+- `BattleSkillPresentationController`：技能与移动演出；技能结果中的 `Relocated` 事实在命中演出后作为可等待的位移动作播放（推拉滑动、交换同时滑动、传送淡出淡入），全部完成才结束演出、提交最终位置；不在 `RenderUnits` 中补未等待的 Tween；
 - `BattleSettingsController`：速度、自动战斗和设置；按钮操作立即影响本场运行态，但只在战斗结束时统一持久化；
 - `BattleSettlementController`：carryover、奖励和结束 Task。
 

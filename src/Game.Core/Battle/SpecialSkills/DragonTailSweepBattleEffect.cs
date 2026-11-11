@@ -13,28 +13,8 @@ public sealed class DragonTailSweepBattleEffectHandler
     {
         foreach (var target in context.Targets)
         {
-            var directionX = target.Position.X - context.Source.Position.X;
-            var directionY = target.Position.Y - context.Source.Position.Y;
-            var destination = target.Position;
-            var movedCells = 0;
-
-            while (true)
-            {
-                var next = new GridPosition(destination.X + directionX, destination.Y + directionY);
-                if (!context.IsCellAvailable(next, target))
-                {
-                    break;
-                }
-
-                destination = next;
-                movedCells++;
-            }
-
-            if (movedCells > 0)
-            {
-                context.TryRelocate(target, destination);
-            }
-
+            // 原版：沿出手方向一路推到撞上障碍，推得越远伤害越高。
+            var movedCells = context.Push(target, int.MaxValue).Cells;
             var distanceFactor = movedCells + 1;
             var damage = context.Random.Next(distanceFactor * 100, distanceFactor * 500 + 1);
             context.DealDamage(target, damage);

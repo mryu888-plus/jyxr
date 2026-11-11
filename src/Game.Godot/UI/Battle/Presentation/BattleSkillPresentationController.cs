@@ -51,6 +51,10 @@ internal sealed class BattleSkillPresentationController(
             case BattleCue { Kind: BattleCueKind.FloatTextRequested } cue:
                 presentation.EnqueueImpactFloat(() => eventPresenter().PresentImmediate(cue));
                 return true;
+            case BattleFact { Kind: BattleFactKind.Relocated, Relocation: { } relocation } fact:
+                presentation.EnqueueRelocation(new BattleRelocationVisual(fact.UnitId, relocation.From, relocation.To, relocation.Kind));
+                presentation.EnqueueImpactFloat(() => eventPresenter().PresentImmediate(fact));
+                return true;
             default:
                 return false;
         }
@@ -117,11 +121,13 @@ internal sealed class BattleSkillPresentationController(
         private readonly List<Action> _skillNameActions = [];
         private readonly List<Action> _impactActions = [];
         private readonly List<Action> _impactFloatActions = [];
+        private readonly List<BattleRelocationVisual> _relocations = [];
         public string ActingUnitId { get; } = actingUnitId;
         public BattleSkillCastInfo SkillCast { get; } = skillCast;
         public void EnqueueSkillName(Action action) => _skillNameActions.Add(action);
         public void EnqueueImpact(Action action) => _impactActions.Add(action);
         public void EnqueueImpactFloat(Action action) => _impactFloatActions.Add(action);
+        public void EnqueueRelocation(BattleRelocationVisual relocation) => _relocations.Add(relocation);
 
         public async Task RunAsync()
         {
@@ -141,6 +147,12 @@ internal sealed class BattleSkillPresentationController(
             await controller.WaitAsync(ImpactFloatDelay);
             Flush(_impactFloatActions);
             await impactTask;
+            if (_relocations.Count > 0)
+            {
+                // 位移作为可等待的动作演出：播完才结束本次技能演出，随后才提交规则位置到画面。
+                await controller._board.PlayUnitRelocationsAsync(_relocations.ToArray());
+                _relocations.Clear();
+            }
         }
 
         private static void Flush(List<Action> actions)

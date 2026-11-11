@@ -4801,7 +4801,7 @@ public sealed class BattleEngineTests
         Assert.Equal(new GridPosition(1, 1), target.Position);
         Assert.Equal(900, target.Hp);
         Assert.Contains(result.Messages, message =>
-            message is BattleFact { Kind: BattleFactKind.Moved, UnitId: "target", Detail: "1,1" });
+            message is BattleFact { Kind: BattleFactKind.Relocated, UnitId: "target", Detail: "1,1" });
     }
 
     [Fact]
@@ -4821,7 +4821,7 @@ public sealed class BattleEngineTests
         Assert.Equal(new GridPosition(4, 1), target.Position);
         Assert.Equal(4600, target.Hp);
         Assert.Contains(result.Messages, message =>
-            message is BattleFact { Kind: BattleFactKind.Moved, UnitId: "target", Detail: "4,1" });
+            message is BattleFact { Kind: BattleFactKind.Relocated, UnitId: "target", Detail: "4,1" });
     }
 
     private static SpecialSkillDefinition CreateCustomSpecialSkill(string id, string effectId)

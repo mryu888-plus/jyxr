@@ -5,17 +5,10 @@ namespace Game.Core.Battle;
 
 public sealed partial class BattleEngine
 {
-    internal bool TryRelocateByEffect(BattleState state, BattleUnit unit, GridPosition destination)
-    {
-        if (!unit.IsAlive || !state.Grid.IsWalkable(destination) || state.IsOccupied(destination, unit.Id))
-        {
-            return false;
-        }
+    internal BattleRelocationResolver RelocationResolver { get; } = new();
 
-        unit.Position = destination;
-        AddMessage(state, new BattleFact(BattleFactKind.Moved, unit.Id, detail: $"{destination.X},{destination.Y}"));
-        return true;
-    }
+    internal bool TryRelocateByEffect(BattleState state, BattleUnit? source, BattleUnit unit, GridPosition destination) =>
+        RelocationResolver.Teleport(state, source, unit, destination).Moved;
 
     public IReadOnlyDictionary<GridPosition, int> GetReachablePositions(BattleState state, string unitId)
     {

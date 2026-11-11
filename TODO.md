@@ -12,6 +12,5 @@
 - 地图交互对象待建模：`InteractableDefinition`、`InteractableState`、`MapObjectDefinition`、`MapObjectState`，用于承载宝箱、门、机关、调查点、采集点、触发器等。
 - 剧情已有对白、选项及宿主演出命令。后续如需要统一镜头、角色入退场和多轨演出的时序，再设计独立演出序列模型。
 - 地图与战斗的衔接对象待建模：`BattleEncounterDefinition`、`EncounterTriggerDefinition`、`BattleResultProjection`，用于表达地图遭遇战入口、触发条件，以及战斗结果如何回写世界状态。
-- 战斗画面提交当前会把规则位置直接瞬移到棋盘，不在 `RenderUnits` 中补未等待的 Tween。后续技能击退、拉近、换位等位移需要表现时，应把位移建模为正式且可等待的动作演出，由统一演出管线播放完成后再提交最终画面。
 - `BeforeHitResolved` 应只承载命中结果确定前的闪避、破闪避、失手等逻辑。后续内容校验应禁止来源侧 `context_hit_state == hit` 的 hook，命中确认后的追加效果应使用 `OnHitConfirmed`，避免数据写法被运行时静默跳过。
 - 当前 DTO 与 runtime definition 存在较多重复字段。后续应收缩 DTO 噪音：优先只保留确有 raw/runtime 差异的类型，并考虑把 DTO 模型进一步内聚到 loader 内部，避免扩散成整层平行定义。

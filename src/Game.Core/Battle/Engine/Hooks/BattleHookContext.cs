@@ -507,7 +507,7 @@ public sealed class BattleHookContext :
                 $"Hit-confirmed relocation can only occur during '{HookTiming.OnHitConfirmed}'.");
         }
 
-        return Engine.TryRelocateByEffect(State, target, destination);
+        return Engine.TryRelocateByEffect(State, Source ?? Unit, target, destination);
     }
 
     bool IHitConfirmedEffectContext.ApplyBuff(

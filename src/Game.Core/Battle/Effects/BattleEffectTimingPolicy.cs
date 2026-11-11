@@ -19,6 +19,7 @@ public static class BattleEffectTimingPolicy
                 timing == HookTiming.BeforeHitResolved,
             ExtraStrikeBattleHookEffectDefinition => timing == HookTiming.OnHitConfirmed,
             RemoveContextBuffBattleEffectDefinition => timing == HookTiming.AfterBuffRound,
+            RelocateBattleEffectDefinition => timing is HookTiming.OnHitConfirmed or HookTiming.AfterSkillCast,
             CustomBattleEffectDefinition custom => custom.SupportsTiming(timing),
             _ => true,
         };

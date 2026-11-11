@@ -32,6 +32,9 @@ public interface IBattleAbilityEffectContext
 
     bool IsCellAvailable(GridPosition position, BattleUnit movingUnit);
     bool TryRelocate(BattleUnit target, GridPosition destination);
+    BattleRelocationResult Push(BattleUnit target, int distance);
+    BattleRelocationResult Pull(BattleUnit target, int distance);
+    BattleRelocationResult SwapWithSource(BattleUnit target);
     bool ApplyBuff(BattleUnit target, string buffId, int level, int duration);
     int ApplyHpRecovery(BattleUnit target, int amount);
 

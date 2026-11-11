@@ -26,7 +26,16 @@ internal sealed class BattleAbilityEffectContext(
         state.Grid.IsWalkable(position) && !state.IsOccupied(position, movingUnit.Id);
 
     public bool TryRelocate(BattleUnit target, GridPosition destination) =>
-        engine.TryRelocateByEffect(state, target, destination);
+        engine.TryRelocateByEffect(state, Source, target, destination);
+
+    public BattleRelocationResult Push(BattleUnit target, int distance) =>
+        engine.RelocationResolver.Push(state, Source, target, distance);
+
+    public BattleRelocationResult Pull(BattleUnit target, int distance) =>
+        engine.RelocationResolver.Pull(state, Source, target, distance);
+
+    public BattleRelocationResult SwapWithSource(BattleUnit target) =>
+        engine.RelocationResolver.Swap(state, Source, target).Second;
 
     public bool ApplyBuff(BattleUnit target, string buffId, int level, int duration) =>
         engine.ApplyBuffByEffect(state, Source, target, buffId, level, duration);

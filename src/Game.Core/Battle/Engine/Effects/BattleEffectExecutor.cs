@@ -161,6 +161,20 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
             case CustomBattleEffectDefinition custom:
                 custom.ExecuteHook(RequireHook());
                 break;
+            case RelocateBattleEffectDefinition relocate:
+                if (hookContext?.IsPreview == true)
+                    throw new InvalidOperationException("Relocation cannot be executed during preview.");
+                foreach (var target in targets)
+                {
+                    _ = relocate.Kind switch
+                    {
+                        BattleRelocationKind.Push => engine.RelocationResolver.Push(state, source, target, relocate.Distance),
+                        BattleRelocationKind.Pull => engine.RelocationResolver.Pull(state, source, target, relocate.Distance),
+                        BattleRelocationKind.Swap => engine.RelocationResolver.Swap(state, source, target).Second,
+                        _ => throw new NotSupportedException($"Relocation kind '{relocate.Kind}' requires a custom effect."),
+                    };
+                }
+                break;
             case GrantScopedBattleEffectDefinition grant:
                 if (RequireHook().IsPreview)
                     throw new InvalidOperationException("Scoped battle effects cannot be granted during preview.");

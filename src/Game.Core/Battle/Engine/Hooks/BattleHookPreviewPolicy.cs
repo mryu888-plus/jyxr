@@ -54,6 +54,7 @@ internal static class BattleHookPreviewPolicy
                 case CancelHitBattleHookEffectDefinition:
                 case SetHitSuccessBattleHookEffectDefinition:
                 case ExtraStrikeBattleHookEffectDefinition:
+                case RelocateBattleEffectDefinition:
                     throw Unsupported(context, $"side-effect effect '{effect.GetType().Name}'");
                 default:
                     throw new NotSupportedException($"Unsupported preview battle hook effect '{effect.GetType().Name}'.");
