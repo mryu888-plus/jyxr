@@ -17,9 +17,6 @@ internal sealed partial class StoryRuntimeSession(
 
     public async IAsyncEnumerable<StoryEvent> RunAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(script);
-        ArgumentNullException.ThrowIfNull(host);
-
         if (script.Segments.Count == 0)
         {
             yield break;

@@ -20,8 +20,6 @@ public sealed record GameProfileRecord(
 
     public static GameProfileRecord Create(GameProfile profile)
     {
-        ArgumentNullException.ThrowIfNull(profile);
-
         return new GameProfileRecord(
             CurrentVersion,
             profile.UnlockedAchievementIds.OrderBy(static id => id, StringComparer.Ordinal).ToList(),

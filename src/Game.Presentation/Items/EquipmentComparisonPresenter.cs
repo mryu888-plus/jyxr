@@ -47,8 +47,6 @@ public static class EquipmentComparisonPresenter
 {
     public static EquipmentComparison Compare(CharacterInstance character, InventoryEntry candidate)
     {
-        ArgumentNullException.ThrowIfNull(character);
-        ArgumentNullException.ThrowIfNull(candidate);
         var (definition, candidateAffixes) = candidate switch
         {
             EquipmentInstanceInventoryEntry instance => (instance.Equipment.Definition, instance.Equipment.Affixes),

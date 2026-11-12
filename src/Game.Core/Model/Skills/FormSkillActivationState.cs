@@ -11,8 +11,6 @@ internal sealed class FormSkillActivationState
         IReadOnlyList<FormSkillDefinition> definitions,
         IEnumerable<string>? disabledFormSkillIds)
     {
-        ArgumentNullException.ThrowIfNull(definitions);
-
         _definitions = definitions;
         _disabledFormSkillIds = new HashSet<string>(disabledFormSkillIds ?? [], StringComparer.Ordinal);
     }

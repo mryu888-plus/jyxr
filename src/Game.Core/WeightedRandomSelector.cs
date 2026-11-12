@@ -9,9 +9,6 @@ public static class WeightedRandomSelector
         Func<T, int> weightSelector,
         IRandomService random)
     {
-        ArgumentNullException.ThrowIfNull(values);
-        ArgumentNullException.ThrowIfNull(weightSelector);
-        ArgumentNullException.ThrowIfNull(random);
         if (values.Count == 0)
         {
             throw new InvalidOperationException("Weighted random selection requires at least one value.");

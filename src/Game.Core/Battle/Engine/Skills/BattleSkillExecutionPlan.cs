@@ -22,8 +22,6 @@ internal static class BattleSkillExecutionPlanFactory
 {
     public static BattleSkillExecutionPlan Create(SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(skill);
-
         var steps = new List<BattleSkillExecutionStep>();
         if (skill is SpecialSkillInstance specialSkill)
         {

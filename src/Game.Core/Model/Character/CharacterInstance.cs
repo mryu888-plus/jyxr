@@ -154,7 +154,6 @@ public sealed class CharacterInstance
 
     public void SetExternalSkillState(ExternalSkillDefinition definition, int level, int exp, bool active)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         var skill = SkillListMutation.Find(ExternalSkills, definition.Id);
         if (skill is null)
         {
@@ -173,7 +172,6 @@ public sealed class CharacterInstance
         int levels,
         int maxLevel)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         var skill = SkillListMutation.Find(ExternalSkills, definition.Id);
         if (skill is null)
         {
@@ -223,9 +221,6 @@ public sealed class CharacterInstance
         Func<ExternalSkillInstance, int> externalSkillMaxLevelResolver,
         Func<InternalSkillInstance, int> internalSkillMaxLevelResolver)
     {
-        ArgumentNullException.ThrowIfNull(externalSkillMaxLevelResolver);
-        ArgumentNullException.ThrowIfNull(internalSkillMaxLevelResolver);
-
         foreach (var externalSkill in ExternalSkills)
         {
             externalSkill.Level = Math.Max(externalSkill.Level, externalSkillMaxLevelResolver(externalSkill));
@@ -244,7 +239,6 @@ public sealed class CharacterInstance
 
     public void SetInternalSkillState(InternalSkillDefinition definition, int level, int exp)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         var skill = SkillListMutation.Find(InternalSkills, definition.Id);
         if (skill is null)
         {
@@ -263,7 +257,6 @@ public sealed class CharacterInstance
         int levels,
         int maxLevel)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         var skill = SkillListMutation.Find(InternalSkills, definition.Id);
         if (skill is null)
         {
@@ -350,7 +343,6 @@ public sealed class CharacterInstance
 
     public bool LearnTalent(TalentDefinition talent)
     {
-        ArgumentNullException.ThrowIfNull(talent);
         if (HasLearnedTalent(talent.Id))
         {
             return false;
@@ -378,7 +370,6 @@ public sealed class CharacterInstance
 
     public bool LearnSpecialSkill(SpecialSkillDefinition definition, bool isActive = true)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         if (SpecialSkills.Any(skill => string.Equals(skill.Definition.Id, definition.Id, StringComparison.Ordinal)))
         {
             return false;

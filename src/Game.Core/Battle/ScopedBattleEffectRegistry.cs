@@ -37,9 +37,6 @@ public sealed class ScopedBattleEffectRegistry
 
     public bool Grant(BattleState state, BattleUnit provider, ScopedBattleEffectDefinition definition, HookTiming? timing)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(provider);
-        ArgumentNullException.ThrowIfNull(definition);
         return definition.GrantMode switch
         {
             ScopedBattleEffectGrantMode.PerProvider => GrantPerProvider(state, provider, definition, timing),

@@ -103,9 +103,6 @@ public sealed class BattleAiEvaluationContext
     /// </summary>
     public int EstimateSkillDamage(SkillInstance skill, BattleUnit target)
     {
-        ArgumentNullException.ThrowIfNull(skill);
-        ArgumentNullException.ThrowIfNull(target);
-
         if (!_damageEstimates.TryGetValue((skill, target), out var damage))
         {
             damage = _damageEstimator.Estimate(Unit, target, skill).Damage;

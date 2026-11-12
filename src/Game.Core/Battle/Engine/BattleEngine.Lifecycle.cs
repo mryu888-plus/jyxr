@@ -6,7 +6,6 @@ public sealed partial class BattleEngine
 {
     public BattleCommandResult<BattleState> StartBattle(BattleState state)
     {
-        ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (state.HasStarted)
             return BattleCommandResult<BattleState>.Succeeded(state, command.Messages);

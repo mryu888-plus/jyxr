@@ -15,10 +15,6 @@ public sealed class LegendSkillResolver
         SkillInstance baseSkill,
         IRandomService random)
     {
-        ArgumentNullException.ThrowIfNull(definitions);
-        ArgumentNullException.ThrowIfNull(baseSkill);
-        ArgumentNullException.ThrowIfNull(random);
-
         foreach (var definition in definitions)
         {
             if (!CanTrigger(definition, baseSkill))

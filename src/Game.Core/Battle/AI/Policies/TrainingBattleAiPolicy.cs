@@ -15,8 +15,6 @@ internal sealed class TrainingBattleAiPolicy : IBattleAiPolicy
         BattleAiEvaluationContext context,
         BattleTurnCandidateGenerator generator)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(generator);
         var unit = context.Unit;
 
         var progressionSkills = new HashSet<SkillInstance>(ReferenceEqualityComparer.Instance);

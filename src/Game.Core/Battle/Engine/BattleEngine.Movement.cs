@@ -12,7 +12,6 @@ public sealed partial class BattleEngine
 
     public IReadOnlyDictionary<GridPosition, int> GetReachablePositions(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
 
         var unit = state.GetUnit(unitId);
@@ -25,7 +24,6 @@ public sealed partial class BattleEngine
 
     public BattleCommandResult<BattleActionResult> MoveTo(BattleState state, string unitId, GridPosition destination)
     {
-        ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {
@@ -68,7 +66,6 @@ public sealed partial class BattleEngine
 
     public BattleCommandResult<BattleActionResult> RollbackMove(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {

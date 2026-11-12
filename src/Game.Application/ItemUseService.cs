@@ -238,13 +238,14 @@ public sealed class ItemUseService
         return result;
     }
 
-    /// <summary>可被功能道具遗忘的武学：外功、未装备的内功、特殊技能（与原版洗练书一致）。</summary>
+    /// <summary>洗练书可遗忘的武学，规则与玩家主动遗忘一致（<see cref="CharacterService.GetForgetAvailability"/>）。</summary>
     public static IReadOnlyList<SkillInstance> GetForgettableSkills(CharacterInstance character)
     {
         ArgumentNullException.ThrowIfNull(character);
         return character.GetSpecialSkills().Cast<SkillInstance>()
             .Concat(character.GetExternalSkills())
-            .Concat(character.GetInternalSkills().Where(static skill => !skill.IsEquipped))
+            .Concat(character.GetInternalSkills())
+            .Where(static skill => CharacterService.GetForgetAvailability(skill) == SkillForgetAvailability.Available)
             .ToArray();
     }
 
@@ -278,19 +279,9 @@ public sealed class ItemUseService
             return ItemUseResult.Failed("选择已失效。");
         }
 
-        switch (selected)
+        if (!_session.CharacterService.ForgetSkill(selected))
         {
-            case ExternalSkillInstance external:
-                _session.CharacterService.RemoveExternalSkill(target, external.Id);
-                break;
-            case InternalSkillInstance internalSkill:
-                _session.CharacterService.RemoveInternalSkill(target, internalSkill.Id);
-                break;
-            case SpecialSkillInstance special:
-                _session.CharacterService.RemoveSpecialSkill(target, special.Id);
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported skill kind '{selected.GetType().Name}'.");
+            return ItemUseResult.Failed("选择已失效。");
         }
 
         CommitSuccessfulUse(entry);

@@ -8,7 +8,6 @@ public sealed class CurrencyState
 
     public static CurrencyState Restore(CurrencyRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         ArgumentOutOfRangeException.ThrowIfNegative(record.Silver);
 
         return new CurrencyState

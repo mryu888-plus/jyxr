@@ -91,7 +91,6 @@ public sealed class CustomBattleEffectRegistry
         where TContext : class, IBattleEffectContext
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(effectId);
-        ArgumentNullException.ThrowIfNull(handler);
         BattleEffectCapabilityPolicy.EnsureSupported<TContext>(effectId, handler.SupportedTimings);
 
         if (!_handlers.TryAdd(effectId, new CustomBattleEffectHandlerAdapter<TParameters, TContext>(handler)))
@@ -105,7 +104,6 @@ public sealed class CustomBattleEffectRegistry
         CustomAbilityBattleEffectHandler<TParameters> handler)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(effectId);
-        ArgumentNullException.ThrowIfNull(handler);
 
         if (!_handlers.TryAdd(effectId, new CustomAbilityBattleEffectHandlerAdapter<TParameters>(handler)))
         {
@@ -305,7 +303,6 @@ internal static class BattleEffectCapabilityPolicy
     public static void EnsureSupported<TContext>(string effectId, IReadOnlySet<HookTiming> timings)
         where TContext : class, IBattleEffectContext
     {
-        ArgumentNullException.ThrowIfNull(timings);
         if (typeof(TContext) == typeof(IBattleEffectContext))
         {
             throw new InvalidOperationException(

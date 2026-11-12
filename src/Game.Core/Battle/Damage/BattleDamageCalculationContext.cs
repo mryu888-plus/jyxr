@@ -9,10 +9,6 @@ public sealed class BattleDamageCalculationContext
 
     public BattleDamageCalculationContext(BattleUnit source, BattleUnit target, SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(skill);
-
         Source = source;
         Target = target;
         Skill = skill;

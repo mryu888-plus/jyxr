@@ -17,8 +17,6 @@ public static class SkillExperienceProgression
 
     public static int CalculateBattleUseExperience(CharacterInstance owner)
     {
-        ArgumentNullException.ThrowIfNull(owner);
-
         var wuxing = Math.Floor(owner.GetStat(StatType.Wuxing));
         return checked(2 * (15 + (int)Math.Floor(wuxing / 2d) + (int)Math.Floor(wuxing / 30d)));
     }
@@ -28,7 +26,6 @@ public static class SkillExperienceProgression
         int experience,
         int maxLevel)
     {
-        ArgumentNullException.ThrowIfNull(skill);
         ArgumentOutOfRangeException.ThrowIfNegative(experience);
         ValidateMaxLevel(maxLevel);
 
@@ -65,8 +62,6 @@ public static class SkillExperienceProgression
 
     public static SkillInstance? NormalizeProgressionSkill(SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(skill);
-
         return skill switch
         {
             ExternalSkillInstance or InternalSkillInstance => skill,

@@ -17,9 +17,6 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
 {
     public BattleDamageResolution Resolve(BattleState state, BattleDamageDescriptor damage)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(damage);
-
         if (damage.HitMode == BattleDamageHitMode.Judged)
         {
             var hit = engine.JudgeHit(state, damage.Source, damage.Target, damage.Skill!);

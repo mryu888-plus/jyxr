@@ -6,8 +6,6 @@ internal sealed class AttackOnlyBattleAiPolicy : IBattleAiPolicy
         BattleAiEvaluationContext context,
         BattleTurnCandidateGenerator generator)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(generator);
         return GenerateCore(context, generator);
     }
 

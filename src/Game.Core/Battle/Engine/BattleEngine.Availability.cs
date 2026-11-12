@@ -7,8 +7,6 @@ public sealed partial class BattleEngine
 {
     public BattleSkillAvailability EvaluateSkillAvailability(BattleState state, string unitId, SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(skill);
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
 
         var unit = state.GetUnit(unitId);

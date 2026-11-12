@@ -12,10 +12,6 @@ public static class HeroFavorabilityPresenter
         Party party,
         IContentRepository contentRepository)
     {
-        ArgumentNullException.ThrowIfNull(adventure);
-        ArgumentNullException.ThrowIfNull(party);
-        ArgumentNullException.ThrowIfNull(contentRepository);
-
         return adventure.FavorabilityByTarget.Keys
             .OrderBy(static targetId => targetId, StringComparer.Ordinal)
             .Select(targetId => CreateView(targetId, adventure, party, contentRepository))

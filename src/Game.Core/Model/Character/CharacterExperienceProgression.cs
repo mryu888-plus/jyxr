@@ -23,8 +23,6 @@ public static class CharacterExperienceProgression
         Func<GrowTemplateDefinition> growTemplateResolver,
         int levelUpGrantedStatPoints = DefaultLevelUpGrantedStatPoints)
     {
-        ArgumentNullException.ThrowIfNull(character);
-        ArgumentNullException.ThrowIfNull(growTemplateResolver);
         ArgumentOutOfRangeException.ThrowIfNegative(experience);
         ArgumentOutOfRangeException.ThrowIfLessThan(maxLevel, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(levelUpGrantedStatPoints);
@@ -52,7 +50,6 @@ public static class CharacterExperienceProgression
         GrowTemplateDefinition growTemplate,
         int levelUpGrantedStatPoints = DefaultLevelUpGrantedStatPoints)
     {
-        ArgumentNullException.ThrowIfNull(growTemplate);
         return TryAddExperience(
             character,
             experience,

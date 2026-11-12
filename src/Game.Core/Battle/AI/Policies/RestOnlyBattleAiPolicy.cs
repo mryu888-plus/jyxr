@@ -6,8 +6,6 @@ internal sealed class RestOnlyBattleAiPolicy : IBattleAiPolicy
         BattleAiEvaluationContext context,
         BattleTurnCandidateGenerator generator)
     {
-        ArgumentNullException.ThrowIfNull(generator);
-
         return generator.Enumerate(
             context,
             new BattleTurnCandidateGenerationOptions(

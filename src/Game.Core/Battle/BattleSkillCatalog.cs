@@ -6,8 +6,6 @@ public static class BattleSkillCatalog
 {
     public static IReadOnlyList<SkillInstance> CollectSelectableSkills(BattleUnit unit)
     {
-        ArgumentNullException.ThrowIfNull(unit);
-
         var character = unit.Character;
         var externalSkills = character.GetExternalSkills();
         var internalSkills = character.GetInternalSkills();

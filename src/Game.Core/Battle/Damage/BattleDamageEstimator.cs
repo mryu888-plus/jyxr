@@ -13,10 +13,6 @@ public sealed class BattleDamageEstimator
 
     public BattleDamageEstimate Estimate(BattleUnit source, BattleUnit target, SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(skill);
-
         var result = _damageCalculator.EstimateSkillDamage(new BattleDamageContext(source, target, skill));
         var multiplier = BattleDamageRules.GetSkillDamageMultiplier(source, target);
         var damage = (int)Math.Floor(result.Amount * multiplier);

@@ -9,8 +9,6 @@ public sealed partial class BattleEngine
 {
     public BattleCommandResult<BattleActionResult> CastSkill(BattleState state, string unitId, SkillInstance skill, GridPosition target)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(skill);
         using var command = state.BeginCommand();
 
         if (ValidateActingUnit(state, unitId, requireMainActionAvailable: true) is { } failure)
@@ -148,8 +146,6 @@ public sealed partial class BattleEngine
         ItemDefinition item,
         string targetUnitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(item);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetUnitId);
         using var command = state.BeginCommand();
 
@@ -188,7 +184,6 @@ public sealed partial class BattleEngine
 
     public BattleCommandResult<BattleActionResult> Rest(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (ValidateActingUnit(state, unitId, requireMainActionAvailable: true) is { } failure)
         {
@@ -225,7 +220,6 @@ public sealed partial class BattleEngine
 
     public BattleCommandResult<BattleActionResult> EndAction(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {

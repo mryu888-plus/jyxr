@@ -17,7 +17,6 @@ public static class BattleOutcomeEvaluator
 {
     public static BattleOutcome Evaluate(BattleState state)
     {
-        ArgumentNullException.ThrowIfNull(state);
         var livingTeams = state.Units
             .Where(static unit => unit.IsAlive)
             .Select(static unit => unit.Team)

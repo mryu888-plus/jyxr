@@ -13,7 +13,6 @@ public sealed class BattleBuffInstance
         string sourceUnitId,
         long appliedAtActionSerial)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         ArgumentOutOfRangeException.ThrowIfNegative(level);
         ArgumentOutOfRangeException.ThrowIfLessThan(remainingTurns, 1);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceUnitId);
@@ -45,7 +44,6 @@ public sealed class BattleBuffInstance
 
     internal void AttachTo(Action changed)
     {
-        ArgumentNullException.ThrowIfNull(changed);
         _changed = changed;
     }
 

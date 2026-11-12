@@ -211,10 +211,6 @@ public sealed partial class BattleEngine
         BattleUnit target,
         ExtraStrikeBattleHookEffectDefinition effect)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(effect);
-
         if (context.DamageAmount is not > 0 || !target.IsAlive)
         {
             return;

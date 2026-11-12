@@ -10,8 +10,6 @@ public sealed class MapEventProgressState
 
     public static MapEventProgressState Restore(MapEventProgressRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
-
         var state = new MapEventProgressState();
         foreach (var completedEvent in record.CompletedEvents ?? [])
         {

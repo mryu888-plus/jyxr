@@ -171,8 +171,6 @@ public sealed class GameProfile
 
     public void SetUnlockedAchievementIds(IEnumerable<string> achievementIds)
     {
-        ArgumentNullException.ThrowIfNull(achievementIds);
-
         _unlockedAchievementIds.Clear();
         foreach (var achievementId in achievementIds)
         {
@@ -183,8 +181,6 @@ public sealed class GameProfile
 
     public void SetSkillMaxLevelBonuses(IReadOnlyDictionary<string, int> bonuses)
     {
-        ArgumentNullException.ThrowIfNull(bonuses);
-
         _skillMaxLevelBonuses.Clear();
         foreach (var (skillId, bonus) in bonuses)
         {
@@ -199,8 +195,6 @@ public sealed class GameProfile
 
     public void SetConsumedSkillMaxLevelKeys(IEnumerable<string> keys)
     {
-        ArgumentNullException.ThrowIfNull(keys);
-
         _consumedSkillMaxLevelKeys.Clear();
         foreach (var key in keys)
         {

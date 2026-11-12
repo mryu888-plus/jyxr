@@ -6,7 +6,6 @@ public static class BattleCommandFailurePresenter
 {
     public static string Format(BattleCommandFailure failure)
     {
-        ArgumentNullException.ThrowIfNull(failure);
         return failure.Reason switch
         {
             BattleCommandFailureReason.UnitAlreadyActing => "已有角色正在行动。",

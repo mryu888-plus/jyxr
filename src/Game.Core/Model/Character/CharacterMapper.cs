@@ -13,7 +13,6 @@ public static class CharacterMapper
         EquipmentInstanceFactory equipmentInstanceFactory,
         GameConfig? config = null)
     {
-        ArgumentNullException.ThrowIfNull(equipmentInstanceFactory);
         var character = new CharacterInstance
         {
             Id = id,
@@ -155,9 +154,6 @@ public static class CharacterMapper
 
     private static void CopyStats(IReadOnlyDictionary<StatType, int> source, Dictionary<StatType, int> target)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-
         foreach (var entry in source)
         {
             if (entry.Key == StatType.Wuxue)

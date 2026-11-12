@@ -9,9 +9,6 @@ public static class TalentResolver
         IEnumerable<TalentDefinition> learnedTalents,
         IReadOnlyList<AffixDefinition> flattenedAffixes)
     {
-        ArgumentNullException.ThrowIfNull(learnedTalents);
-        ArgumentNullException.ThrowIfNull(flattenedAffixes);
-
         // Avoid relying on the default equality semantics of the TalentDefinition record;
         // instead, perform stable deduplication directly by id.
         var candidateTalentsById = new Dictionary<string, TalentDefinition>(StringComparer.Ordinal);

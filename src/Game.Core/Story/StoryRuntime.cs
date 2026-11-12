@@ -8,7 +8,6 @@ public sealed class StoryRuntime
         string? startSegment = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(script);
         if (script.Version != StoryScript.CurrentVersion)
         {
             throw new StoryRuntimeException(

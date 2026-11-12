@@ -6,7 +6,6 @@ public sealed partial class BattleEngine
 {
     public BattleCommandResult<BattleActionContext?> BeginAction(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
         using var command = state.BeginCommand();
 
@@ -70,7 +69,6 @@ public sealed partial class BattleEngine
 
     public BattleCommandResult<BattleUnit> AdvanceUntilNextAction(BattleState state, int maxTicks = 100_000)
     {
-        ArgumentNullException.ThrowIfNull(state);
         ArgumentOutOfRangeException.ThrowIfLessThan(maxTicks, 1);
         using var command = state.BeginCommand();
 

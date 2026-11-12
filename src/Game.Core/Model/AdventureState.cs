@@ -28,7 +28,6 @@ public sealed class AdventureState
 
     public static AdventureState Restore(AdventureStateRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         ArgumentOutOfRangeException.ThrowIfLessThan(record.Round, 1);
         if (!Enum.IsDefined(record.Difficulty))
         {

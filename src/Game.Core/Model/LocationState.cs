@@ -12,7 +12,6 @@ public sealed class LocationState
 
     public static LocationState Restore(LocationRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         var location = new LocationState
         {
             CurrentMapId = record.CurrentMapId ?? "",

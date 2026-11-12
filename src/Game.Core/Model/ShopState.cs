@@ -114,7 +114,6 @@ public sealed class ShopState
     public ShopBuybackEntry AddBuyback(string shopId, ShopBuybackEntry entry)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
-        ArgumentNullException.ThrowIfNull(entry);
         if (!_buybacks.TryGetValue(shopId, out var entries))
         {
             entries = [];

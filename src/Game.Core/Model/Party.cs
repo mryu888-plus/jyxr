@@ -86,7 +86,6 @@ public sealed class Party
     /// <summary>用同 id 的新实例替换名册里的旧实例，保持所在位置（正式队员 / 跟随 / 后备）和顺序。</summary>
     public void Replace(CharacterInstance replacement)
     {
-        ArgumentNullException.ThrowIfNull(replacement);
         if (!TryGetPlacement(replacement.Id, out _, out var placement))
         {
             throw new InvalidOperationException($"Character '{replacement.Id}' is not in the party roster.");
@@ -156,8 +155,6 @@ public sealed class Party
 
     private void AddCharacter(CharacterInstance character, PartyPlacement placement)
     {
-        ArgumentNullException.ThrowIfNull(character);
-
         if (ContainsCharacter(character.Id))
         {
             throw new InvalidOperationException($"Character '{character.Id}' is already in the party roster.");

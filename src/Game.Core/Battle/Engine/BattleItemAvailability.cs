@@ -22,7 +22,6 @@ public static class BattleItemAvailability
     /// <summary>物品冷却在普通难度下按规则设置关闭。</summary>
     public static bool IsItemCooldownEnabled(BattleRuleSettings ruleSettings)
     {
-        ArgumentNullException.ThrowIfNull(ruleSettings);
         return !ruleSettings.EnableDifficultyItemCooldownRules ||
             ruleSettings.Difficulty != GameDifficulty.Normal;
     }
@@ -30,8 +29,6 @@ public static class BattleItemAvailability
     /// <summary>判断 <paramref name="unit"/> 能否对 <paramref name="target"/> 使用物品；可用时返回 null。</summary>
     public static BattleCommandFailure? ValidateTarget(BattleState state, BattleUnit unit, BattleUnit? target)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(unit);
         if (target is null || !target.IsAlive)
         {
             return new BattleCommandFailure(BattleCommandFailureReason.InvalidItemTarget);
@@ -71,8 +68,6 @@ public static class BattleItemAvailability
     /// </summary>
     public static BattleItemUseAvailability Evaluate(BattleState state, BattleUnit unit)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(unit);
         var candidates = new List<BattleUnit> { unit };
         if (unit.HasTrait(TraitId.CanUseItemOnAlly))
         {

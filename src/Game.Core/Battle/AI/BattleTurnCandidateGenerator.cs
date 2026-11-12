@@ -24,7 +24,6 @@ public sealed class BattleTurnCandidateGenerator
     /// <summary>创建本次决策的评估上下文（同一决策内的多次枚举应共用同一个上下文）。</summary>
     public BattleAiEvaluationContext CreateEvaluationContext(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
         return new BattleAiEvaluationContext(_engine, state, state.GetUnit(unitId));
     }
@@ -44,7 +43,6 @@ public sealed class BattleTurnCandidateGenerator
         BattleAiEvaluationContext context,
         BattleTurnCandidateGenerationOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(context);
         if (!ReferenceEquals(context.Engine, _engine))
         {
             throw new ArgumentException("Evaluation context belongs to a different battle engine.", nameof(context));
@@ -147,8 +145,6 @@ public sealed class BattleTurnCandidateGenerator
         BattleAiEvaluationContext context,
         GridPosition destination)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         var state = context.State;
         var unit = context.Unit;
         var beneficial = new List<SpecialSkillInstance>();

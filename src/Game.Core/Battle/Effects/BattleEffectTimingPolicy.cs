@@ -6,7 +6,6 @@ public static class BattleEffectTimingPolicy
 {
     public static bool Supports(HookTiming timing, BattleEffectDefinition effect)
     {
-        ArgumentNullException.ThrowIfNull(effect);
         return effect switch
         {
             ModifyDamageBattleHookEffectDefinition => timing == HookTiming.BeforeDamageApplied,

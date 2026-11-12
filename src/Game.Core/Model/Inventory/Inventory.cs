@@ -18,7 +18,6 @@ public sealed class Inventory
         IEnumerable<InventoryEntry> entries)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(nextEntryNumber, 1);
-        ArgumentNullException.ThrowIfNull(entries);
 
         var inventory = new Inventory
         {
@@ -35,7 +34,6 @@ public sealed class Inventory
 
     public StackInventoryEntry AddItem(ItemDefinition definition, int quantity = 1)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         if (_stackEntriesByItemId.TryGetValue(definition.Id, out var existing))
@@ -52,7 +50,6 @@ public sealed class Inventory
 
     public void RemoveItem(ItemDefinition definition, int quantity = 1)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         if (!_stackEntriesByItemId.TryGetValue(definition.Id, out var entry))
@@ -72,8 +69,6 @@ public sealed class Inventory
 
     public InventoryEntry AddEquipmentInstance(EquipmentInstance equipment)
     {
-        ArgumentNullException.ThrowIfNull(equipment);
-
         if (!equipment.HasInstanceLevelDifferences)
         {
             return AddItem(equipment.Definition);
@@ -112,21 +107,17 @@ public sealed class Inventory
 
     public StackInventoryEntry GetStack(ItemDefinition definition)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         return _stackEntriesByItemId[definition.Id];
     }
 
     public bool ContainsStack(ItemDefinition definition, int quantity = 1)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
         return _stackEntriesByItemId.TryGetValue(definition.Id, out var entry) && entry.Quantity >= quantity;
     }
 
     private void AddRestoredEntry(InventoryEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(entry);
-
         switch (entry)
         {
             case StackInventoryEntry stack:
@@ -181,7 +172,6 @@ public sealed class StackInventoryEntry : InventoryEntry
     public StackInventoryEntry(long entryNumber, ItemDefinition item, int quantity)
         : base(entryNumber)
     {
-        ArgumentNullException.ThrowIfNull(item);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         Item = item;
@@ -219,7 +209,6 @@ public sealed class EquipmentInstanceInventoryEntry : InventoryEntry
     public EquipmentInstanceInventoryEntry(long entryNumber, EquipmentInstance equipment)
         : base(entryNumber)
     {
-        ArgumentNullException.ThrowIfNull(equipment);
         Equipment = equipment;
     }
 

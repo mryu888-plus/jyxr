@@ -18,15 +18,11 @@ public sealed class BattleDamageCalculator
 
     public BattleDamageResult CalculateSkillDamage(BattleDamageContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         return CalculateSkillDamage(CreateSkillDamageContext(context));
     }
 
     public BattleDamageCalculationContext CreateSkillDamageContext(BattleDamageContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         var damageContext = new BattleDamageCalculationContext(context.Source, context.Target, context.Skill);
         if (context.Skill.Power <= 0)
         {
@@ -83,8 +79,6 @@ public sealed class BattleDamageCalculator
 
     public BattleDamageResult CalculateSkillDamage(BattleDamageCalculationContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         if (context.Skill.Power <= 0)
         {
             return new BattleDamageResult(0, IsCritical: false, CriticalChance: 0d, DefenceReduction: 0d);
@@ -124,15 +118,11 @@ public sealed class BattleDamageCalculator
 
     public BattleDamageResult EstimateSkillDamage(BattleDamageContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         return EstimateSkillDamage(CreateSkillDamageContext(context));
     }
 
     public BattleDamageResult EstimateSkillDamage(BattleDamageCalculationContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         if (context.Skill.Power <= 0)
         {
             return new BattleDamageResult(0, IsCritical: false, CriticalChance: 0d, DefenceReduction: 0d);

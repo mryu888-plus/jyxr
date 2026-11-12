@@ -6,7 +6,6 @@ public static class Probability
 {
     public static bool RollChance(IRandomService random, double probability)
     {
-        ArgumentNullException.ThrowIfNull(random);
         return probability switch
         {
             <= 0d => false,

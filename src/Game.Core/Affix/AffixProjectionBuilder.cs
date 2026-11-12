@@ -7,7 +7,6 @@ public static class AffixProjectionBuilder
 {
     public static CharacterProjection BuildCharacter(ResolvedAffixSet resolved)
     {
-        ArgumentNullException.ThrowIfNull(resolved);
         var sourceSequences = new Dictionary<(ProviderKind Kind, string Id), long>();
         var entries = resolved.Affixes.Select(affix =>
         {
@@ -36,7 +35,6 @@ public static class AffixProjectionBuilder
 
     public static AffixProjection Build(IEnumerable<ActiveAffixEntry> sourceEntries)
     {
-        ArgumentNullException.ThrowIfNull(sourceEntries);
         var entries = sourceEntries.ToList();
         var stat = new Dictionary<StatType, ModifierBucket>();
         var skill = new Dictionary<string, ModifierBucket>();

@@ -7,17 +7,12 @@ public static class InventoryMapper
 {
     public static Inventory FromRecord(InventoryRecord record, IContentRepository contentRepository)
     {
-        ArgumentNullException.ThrowIfNull(record);
-        ArgumentNullException.ThrowIfNull(contentRepository);
-
         var entries = record.Entries.Select(entry => FromEntryRecord(entry, contentRepository)).ToList();
         return Inventory.Restore(record.NextEntryNumber, entries);
     }
 
     public static InventoryRecord ToRecord(Inventory inventory)
     {
-        ArgumentNullException.ThrowIfNull(inventory);
-
         return new InventoryRecord(
             inventory.NextEntryNumber,
             inventory.Entries.Select(ToEntryRecord).ToList());

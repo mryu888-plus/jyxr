@@ -5,7 +5,6 @@ public static class ExperienceGainPolicy
 {
     public static int Resolve(CharacterInstance character, int experience)
     {
-        ArgumentNullException.ThrowIfNull(character);
         ArgumentOutOfRangeException.ThrowIfNegative(experience);
 
         return character.Traits.Contains(TraitId.DoubleExperienceGain)

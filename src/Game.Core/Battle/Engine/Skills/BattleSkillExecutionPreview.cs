@@ -50,13 +50,6 @@ public sealed partial class BattleEngine
         Func<SkillInstance, BattleUnit, int> estimateSkillDamage,
         ICollection<BattleSkillPreviewEffect> output)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(skill);
-        ArgumentNullException.ThrowIfNull(primaryTargets);
-        ArgumentNullException.ThrowIfNull(estimateSkillDamage);
-        ArgumentNullException.ThrowIfNull(output);
-
         var plan = BattleSkillExecutionPlanFactory.Create(skill);
         foreach (var step in plan.Steps)
         {

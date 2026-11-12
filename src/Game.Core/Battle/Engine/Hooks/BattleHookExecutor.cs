@@ -11,9 +11,6 @@ public sealed class BattleHookExecutor
 
     public void Execute(BattleHookContext context, HookAffix hook)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(hook);
-
         if (hook.Timing != context.Timing)
         {
             throw new InvalidOperationException(
@@ -53,8 +50,6 @@ public sealed class BattleHookExecutor
     /// </summary>
     internal void CommitHitOutcome(BattleHookContext context, PendingHitOutcome outcome)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(outcome);
         if (!IsConsistentWithFinalHit(outcome.Hook, context.HitState))
         {
             return;

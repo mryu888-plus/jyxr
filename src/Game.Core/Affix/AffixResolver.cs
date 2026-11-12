@@ -9,9 +9,6 @@ public static class AffixResolver
         IEnumerable<AffixDefinition> activeAffixes,
         IEnumerable<TalentDefinition> learnedTalents)
     {
-        ArgumentNullException.ThrowIfNull(activeAffixes);
-        ArgumentNullException.ThrowIfNull(learnedTalents);
-
         return TalentResolver.Resolve(learnedTalents, new ReadOnlyCollection<AffixDefinition>(activeAffixes.ToList()));
     }
 
@@ -20,15 +17,12 @@ public static class AffixResolver
         ProviderKind sourceKind,
         string sourceId)
     {
-        ArgumentNullException.ThrowIfNull(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
 
         var affixes = new List<AffixDefinition>();
 
         foreach (var (affix, index) in provider.Affixes.Select((affix, index) => (affix, index)))
         {
-            ArgumentNullException.ThrowIfNull(affix);
-
             affixes.Add(affix with
             {
                 SourceKind = sourceKind,
@@ -47,7 +41,6 @@ public static class AffixResolver
         ProviderKind sourceKind,
         string sourceId)
     {
-        ArgumentNullException.ThrowIfNull(skillAffixes);
         ArgumentOutOfRangeException.ThrowIfLessThan(skillLevel, 1);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
 
@@ -55,9 +48,6 @@ public static class AffixResolver
 
         foreach (var (affix, index) in skillAffixes.Select((affix, index) => (affix, index)))
         {
-            ArgumentNullException.ThrowIfNull(affix);
-            ArgumentNullException.ThrowIfNull(affix.Effect);
-
             if (skillLevel < affix.MinimumLevel)
             {
                 continue;

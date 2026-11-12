@@ -60,9 +60,6 @@ internal static class BattleUnitSelectorResolver
         BattleUnitSelectorDefinition selector,
         IReadOnlySet<string> explicitUnitIds)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentNullException.ThrowIfNull(explicitUnitIds);
         return selector switch
         {
             AllUnitsBattleUnitSelectorDefinition => state.GetLivingUnits(),

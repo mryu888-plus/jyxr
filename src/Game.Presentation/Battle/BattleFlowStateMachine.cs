@@ -121,7 +121,6 @@ public sealed class BattleFlowStateMachine
 
 	public Task DispatchAsync(BattleUiIntent intent)
 	{
-		ArgumentNullException.ThrowIfNull(intent);
 		return intent is BattleUiIntent.ToggleAutoBattle or BattleUiIntent.Surrender
 			? DispatchGlobalAsync(intent)
 			: DispatchSerializedAsync(intent, _stateVersion);
@@ -129,7 +128,6 @@ public sealed class BattleFlowStateMachine
 
 	public async Task TransitionAsync(IBattleFlowState next)
 	{
-		ArgumentNullException.ThrowIfNull(next);
 		var current = Current;
 		if (!current.AllowedTransitions.Contains(next.Kind))
 		{

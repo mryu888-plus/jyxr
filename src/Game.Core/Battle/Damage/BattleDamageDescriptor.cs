@@ -78,8 +78,6 @@ public sealed record BattleDamageDescriptor
         BattleDamageReactions reactions,
         SkillInstance? skill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
         if (hitMode == BattleDamageHitMode.Judged && skill is null)
         {

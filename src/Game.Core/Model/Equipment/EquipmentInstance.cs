@@ -13,7 +13,6 @@ public sealed class EquipmentInstance : IAffixProvider
         IReadOnlyList<AffixDefinition>? extraAffixes = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentNullException.ThrowIfNull(definition);
 
         Id = id;
         Definition = definition;
@@ -36,8 +35,6 @@ public sealed class EquipmentInstance : IAffixProvider
 
     public void ReplaceExtraAffixes(IEnumerable<AffixDefinition> affixes)
     {
-        ArgumentNullException.ThrowIfNull(affixes);
-
         var replacement = affixes.ToList();
         _extraAffixes.Clear();
         _extraAffixes.AddRange(replacement);

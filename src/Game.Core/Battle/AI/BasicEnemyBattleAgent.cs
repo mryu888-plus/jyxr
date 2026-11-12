@@ -17,7 +17,6 @@ public sealed class BasicEnemyBattleAgent : IBattleAgent
 
     public BattleTurnPlan Decide(BattleState state, string unitId)
     {
-        ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(unitId);
 
         var unit = state.GetUnit(unitId);

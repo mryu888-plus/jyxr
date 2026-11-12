@@ -10,13 +10,11 @@ public sealed class BattleSkillPreviewAiScorer : IBattleSkillAiScorer
 {
     public bool CanScore(SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(skill);
         return skill is SpecialSkillInstance || skill.Power > 0d;
     }
 
     public BattleSkillAiEvaluation Score(BattleSkillAiContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         var evaluation = context.Evaluation
             ?? throw new InvalidOperationException("Skill preview scoring requires a battle AI evaluation context.");
 

@@ -24,7 +24,6 @@ public sealed class EquipmentInstanceFactory
         EquipmentDefinition definition,
         IReadOnlyList<AffixDefinition>? extraAffixes = null)
     {
-        ArgumentNullException.ThrowIfNull(definition);
         return new EquipmentInstance(NextId(definition), definition, extraAffixes);
     }
 

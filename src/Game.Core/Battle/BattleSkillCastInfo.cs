@@ -14,9 +14,6 @@ public sealed record BattleSkillCastInfo(
 {
     public static BattleSkillCastInfo Create(SkillInstance baseSkill, SkillInstance resolvedSkill)
     {
-        ArgumentNullException.ThrowIfNull(baseSkill);
-        ArgumentNullException.ThrowIfNull(resolvedSkill);
-
         return new BattleSkillCastInfo(
             baseSkill.Id,
             resolvedSkill.Id,

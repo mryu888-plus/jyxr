@@ -15,9 +15,6 @@ public sealed class BattleState
         IEnumerable<BattleUnit> units,
         BattleRuleSettings? ruleSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(grid);
-        ArgumentNullException.ThrowIfNull(units);
-
         Grid = grid;
         RuleSettings = ruleSettings ?? BattleRuleSettings.Neutral;
         _units = units.ToList();
@@ -76,7 +73,6 @@ public sealed class BattleState
 
     internal IDisposable EnterSkillExecution(BattleSkillExecution execution)
     {
-        ArgumentNullException.ThrowIfNull(execution);
         var previous = ActiveSkillExecution;
         ActiveSkillExecution = execution;
         return new SkillExecutionScope(this, previous);

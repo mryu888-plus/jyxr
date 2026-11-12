@@ -26,7 +26,6 @@ public sealed class JournalState
 
     public void Append(ClockState clock, string text)
     {
-        ArgumentNullException.ThrowIfNull(clock);
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         _entries.Add(JournalEntry.FromClock(clock, text));
@@ -42,7 +41,6 @@ public sealed record JournalEntry(
 {
     public static JournalEntry FromClock(ClockState clock, string text)
     {
-        ArgumentNullException.ThrowIfNull(clock);
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         return new JournalEntry(new ClockRecord(clock.Year, clock.Month, clock.Day, clock.TimeSlot), text);
@@ -50,8 +48,6 @@ public sealed record JournalEntry(
 
     public static JournalEntry Restore(JournalEntryRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
-        ArgumentNullException.ThrowIfNull(record.Timestamp);
         ArgumentException.ThrowIfNullOrWhiteSpace(record.Text);
 
         return new JournalEntry(record.Timestamp, record.Text);

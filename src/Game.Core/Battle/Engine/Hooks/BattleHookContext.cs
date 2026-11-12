@@ -35,11 +35,6 @@ public sealed class BattleHookContext :
         IRandomService random,
         BattleHookExecutionMode executionMode)
     {
-        ArgumentNullException.ThrowIfNull(engine);
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(unit);
-        ArgumentNullException.ThrowIfNull(random);
-
         Engine = engine;
         State = state;
         Timing = timing;
@@ -222,7 +217,6 @@ public sealed class BattleHookContext :
 
     public void RequestSpeech(BattleUnit speaker, string text)
     {
-        ArgumentNullException.ThrowIfNull(speaker);
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         BattleSpeechRuntime.TryEmit(State, speaker, text, Timing);
     }
@@ -232,7 +226,6 @@ public sealed class BattleHookContext :
         string text,
         BattleFloatTextStyle style = BattleFloatTextStyle.Normal)
     {
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         State.AddMessage(new BattleCue(
             BattleCueKind.FloatTextRequested,
@@ -249,7 +242,6 @@ public sealed class BattleHookContext :
                 $"Damage can only be redirected during '{HookTiming.BeforeDamageApplied}'.");
         }
 
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(damageFactor);
         Target = target;
         DamageAmount = Math.Max(0, (int)((DamageAmount ?? 0) * damageFactor));
@@ -283,7 +275,6 @@ public sealed class BattleHookContext :
     public void TransferDamage(BattleUnit target, int amount, string? detail = null)
     {
         EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be transferred");
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
         var current = DamageAmount ?? 0;
         var transferred = Math.Min(amount, current);
@@ -299,7 +290,6 @@ public sealed class BattleHookContext :
     public int ReflectDamage(BattleUnit target, int amount, string? detail = null)
     {
         EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be reflected");
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
         return Engine.ResolveDamage(State, BattleDamageDescriptor.ForReflection(Unit, target, amount) with
         {
@@ -311,7 +301,6 @@ public sealed class BattleHookContext :
     public int ShareDamage(BattleUnit target, int amount, string? detail = null)
     {
         EnsureTiming(HookTiming.BeforeDamageApplied, "Damage can only be shared");
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
         return Engine.ResolveDamage(State, BattleDamageDescriptor.ForShare(Source ?? Unit, target, amount) with
         {
@@ -350,7 +339,6 @@ public sealed class BattleHookContext :
     bool IDefeatPreventionEffectContext.TryPreventDefeat(BattleDefeatPrevention prevention)
     {
         EnsureTiming(HookTiming.BeforeDefeated, "Defeat can only be prevented");
-        ArgumentNullException.ThrowIfNull(prevention);
         if (IsDefeatPrevented || Unit.IsAlive || Unit.Mp < prevention.MpCost)
         {
             return false;
@@ -403,7 +391,6 @@ public sealed class BattleHookContext :
 
     private int RestoreHpCore(BattleUnit source, BattleUnit target, int amount, string? detail)
     {
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
         var restored = Engine.RecoveryResolver.Apply(
@@ -422,7 +409,6 @@ public sealed class BattleHookContext :
 
     private int RecoverMpCore(BattleUnit source, BattleUnit target, int amount, string? detail)
     {
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
         var restored = Engine.RecoveryResolver.Apply(
@@ -445,7 +431,6 @@ public sealed class BattleHookContext :
 
     private int DamageMpCore(BattleUnit target, int amount, string? detail)
     {
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
         return BattleResourceResolver.DamageMp(State, target, amount, Timing, detail);
@@ -495,7 +480,6 @@ public sealed class BattleHookContext :
                 $"Hit-confirmed relocation can only inspect cells during '{HookTiming.OnHitConfirmed}'.");
         }
 
-        ArgumentNullException.ThrowIfNull(movingUnit);
         return State.Grid.IsWalkable(position) && !State.IsOccupied(position, movingUnit.Id);
     }
 

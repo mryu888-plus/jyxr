@@ -25,9 +25,6 @@ public sealed partial class BattleEngine
         int duration,
         HookTiming? timing = null)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(buffId);
         ArgumentOutOfRangeException.ThrowIfNegative(level);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(duration);

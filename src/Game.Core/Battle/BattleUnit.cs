@@ -29,7 +29,6 @@ public sealed class BattleUnit
         bool? receivesPersistentGrowth = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentNullException.ThrowIfNull(character);
         ArgumentOutOfRangeException.ThrowIfNegative(rage);
 
         Id = id;
@@ -237,8 +236,6 @@ public sealed class BattleUnit
 
     public bool TryApplyBuff(BattleBuffInstance buff)
     {
-        ArgumentNullException.ThrowIfNull(buff);
-
         var existing = _buffs.FirstOrDefault(existingBuff =>
             string.Equals(existingBuff.Definition.Id, buff.Definition.Id, StringComparison.Ordinal));
         if (existing is not null &&
@@ -263,8 +260,6 @@ public sealed class BattleUnit
 
     public IReadOnlyList<BattleBuffInstance> RemoveBuffs(Func<BattleBuffInstance, bool> predicate)
     {
-        ArgumentNullException.ThrowIfNull(predicate);
-
         var removed = _buffs
             .Where(predicate)
             .ToList();
@@ -289,7 +284,6 @@ public sealed class BattleUnit
 
     internal bool RemoveBuff(BattleBuffInstance buff)
     {
-        ArgumentNullException.ThrowIfNull(buff);
         if (!_buffs.Remove(buff))
         {
             return false;

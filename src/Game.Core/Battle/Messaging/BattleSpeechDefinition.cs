@@ -26,7 +26,6 @@ public static class BattleSpeechRuntime
 {
     public static string? TryPickLine(BattleSpeechDefinition? speech, IRandomService random)
     {
-        ArgumentNullException.ThrowIfNull(random);
         if (speech is null || speech.Lines.Count == 0)
         {
             return null;
@@ -51,8 +50,6 @@ public static class BattleSpeechRuntime
         string? text,
         HookTiming? timing = null)
     {
-        ArgumentNullException.ThrowIfNull(state);
-
         if (speaker is null || !speaker.IsAlive || string.IsNullOrWhiteSpace(text))
         {
             return;

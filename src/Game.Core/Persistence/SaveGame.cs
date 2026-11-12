@@ -45,16 +45,6 @@ public sealed record SaveGame(
         MiniGameState? miniGameState = null,
         long playTimeSeconds = 0)
     {
-        ArgumentNullException.ThrowIfNull(adventure);
-        ArgumentNullException.ThrowIfNull(party);
-        ArgumentNullException.ThrowIfNull(inventory);
-        ArgumentNullException.ThrowIfNull(chest);
-        ArgumentNullException.ThrowIfNull(equipmentInstanceFactory);
-        ArgumentNullException.ThrowIfNull(currency);
-        ArgumentNullException.ThrowIfNull(clock);
-        ArgumentNullException.ThrowIfNull(location);
-        ArgumentNullException.ThrowIfNull(mapEventProgress);
-        ArgumentNullException.ThrowIfNull(worldTriggerState);
         ArgumentOutOfRangeException.ThrowIfNegative(playTimeSeconds);
 
         return new SaveGame(

@@ -21,7 +21,6 @@ public sealed class ClockState
 
     public static ClockState Restore(ClockRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         ArgumentOutOfRangeException.ThrowIfLessThan(record.Year, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(record.Month, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(record.Month, MonthsPerYear);
@@ -71,7 +70,6 @@ public sealed class ClockState
 
     public bool InTimeSlot(params TimeSlot[] timeSlots)
     {
-        ArgumentNullException.ThrowIfNull(timeSlots);
         return timeSlots.Contains(TimeSlot);
     }
 

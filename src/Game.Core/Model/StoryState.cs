@@ -84,7 +84,6 @@ public sealed class StoryState
         string targetStoryId = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        ArgumentNullException.ThrowIfNull(currentClock);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limitDays);
 
         var startedAt = currentClock.ToRecord();
@@ -157,9 +156,7 @@ public sealed class StoryTimeKeyState
         string targetStoryId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        ArgumentNullException.ThrowIfNull(startedAt);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limitDays);
-        ArgumentNullException.ThrowIfNull(deadlineAt);
 
         Key = key;
         StartedAt = startedAt;
@@ -180,7 +177,6 @@ public sealed class StoryTimeKeyState
 
     public static StoryTimeKeyState Restore(StoryTimeKeyRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
         return new StoryTimeKeyState(
             record.Key,
             record.StartedAt,

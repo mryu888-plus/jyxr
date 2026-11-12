@@ -9,9 +9,6 @@ public static class BattleSkillTargeting
 {
     public static int ResolveEffectiveCastSize(BattleUnit source, SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(skill);
-
         var castSize = source.GetSkillTargetingValue(
             skill,
             SkillTargetingField.CastSize,
@@ -21,9 +18,6 @@ public static class BattleSkillTargeting
 
     public static int ResolveEffectiveImpactSize(BattleUnit source, SkillInstance skill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(skill);
-
         var impactSize = source.GetSkillTargetingValue(
             skill,
             SkillTargetingField.ImpactSize,
@@ -37,11 +31,6 @@ public static class BattleSkillTargeting
         SkillInstance skill,
         IReadOnlySet<GridPosition> impactedPositions)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(skill);
-        ArgumentNullException.ThrowIfNull(impactedPositions);
-
         return state.Units
             .Where(targetUnit => targetUnit.IsAlive && impactedPositions.Contains(targetUnit.Position))
             .Where(targetUnit => CanAffect(state, source, targetUnit, skill))
@@ -96,8 +85,6 @@ public static class BattleSkillTargeting
         bool canCastAtSelf,
         BattleGrid grid)
     {
-        ArgumentNullException.ThrowIfNull(grid);
-
         var targets = new HashSet<GridPosition>();
         for (var y = sourcePosition.Y - castSize; y <= sourcePosition.Y + castSize; y++)
         {
@@ -121,7 +108,6 @@ public static class BattleSkillTargeting
         bool canCastAtSelf,
         BattleGrid grid)
     {
-        ArgumentNullException.ThrowIfNull(grid);
         return grid.Contains(targetPosition) &&
                sourcePosition.ManhattanDistanceTo(targetPosition) <= castSize &&
                (sourcePosition != targetPosition || canCastAtSelf);

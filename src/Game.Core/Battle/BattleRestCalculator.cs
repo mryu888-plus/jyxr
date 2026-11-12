@@ -18,9 +18,6 @@ public static class BattleRestCalculator
 
     public static BattleRestRecovery Roll(BattleUnit unit, IRandomService random)
     {
-        ArgumentNullException.ThrowIfNull(unit);
-        ArgumentNullException.ThrowIfNull(random);
-
         return Calculate(
             unit,
             Roll(random, HpRollLow, HpRollHigh),
@@ -29,8 +26,6 @@ public static class BattleRestCalculator
 
     public static BattleRestRecovery EstimateAverage(BattleUnit unit)
     {
-        ArgumentNullException.ThrowIfNull(unit);
-
         return Calculate(
             unit,
             (HpRollLow + HpRollHigh) / 2d,

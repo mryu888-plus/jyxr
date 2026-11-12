@@ -9,8 +9,6 @@ public sealed class ChestState
 
     public static ChestState Restore(ChestStateRecord? record, IContentRepository contentRepository)
     {
-        ArgumentNullException.ThrowIfNull(contentRepository);
-
         var state = new ChestState();
         if (record is null)
         {
@@ -29,7 +27,6 @@ public sealed class ChestState
 
     public void SetInventory(Inventory inventory)
     {
-        ArgumentNullException.ThrowIfNull(inventory);
         Inventory = inventory;
     }
 

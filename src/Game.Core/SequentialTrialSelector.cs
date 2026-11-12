@@ -17,9 +17,6 @@ public static class SequentialTrialSelector
         Func<T, int> weightSelector,
         IRandomService random)
     {
-        ArgumentNullException.ThrowIfNull(values);
-        ArgumentNullException.ThrowIfNull(weightSelector);
-        ArgumentNullException.ThrowIfNull(random);
         if (values.Count == 0)
         {
             throw new InvalidOperationException("Sequential trial selection requires at least one value.");

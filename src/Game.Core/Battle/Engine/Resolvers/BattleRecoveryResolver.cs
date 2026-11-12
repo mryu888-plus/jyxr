@@ -16,9 +16,6 @@ internal sealed class BattleRecoveryResolver(BattleHookTrigger triggerHooks)
         BattleRecoveryKind kind,
         int amount)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
         var context = triggerHooks(

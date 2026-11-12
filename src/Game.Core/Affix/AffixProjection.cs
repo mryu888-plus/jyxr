@@ -81,7 +81,6 @@ public sealed class AffixProjection
     /// <summary>按原始顺序依次应用匹配该技能的范围修改。</summary>
     public int EvaluateSkillTargeting(Model.Skills.SkillInstance skill, SkillTargetingField field, int baseValue)
     {
-        ArgumentNullException.ThrowIfNull(skill);
         var bucket = ModifierBucket.Empty;
         foreach (var modifier in TargetingModifiers)
         {

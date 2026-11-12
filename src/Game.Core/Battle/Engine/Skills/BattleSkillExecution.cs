@@ -21,7 +21,6 @@ internal sealed class BattleSkillExecution(BattleUnit source, SkillInstance skil
 
     public void RecordAffected(BattleUnit unit)
     {
-        ArgumentNullException.ThrowIfNull(unit);
         if (_affectedUnitIds.Add(unit.Id))
         {
             _affectedUnits.Add(unit);
@@ -30,7 +29,6 @@ internal sealed class BattleSkillExecution(BattleUnit source, SkillInstance skil
 
     public void RecordAffected(IEnumerable<BattleUnit> units)
     {
-        ArgumentNullException.ThrowIfNull(units);
         foreach (var unit in units)
         {
             RecordAffected(unit);
@@ -43,7 +41,6 @@ internal sealed class BattleSkillExecution(BattleUnit source, SkillInstance skil
     /// <summary>同一次施放内，每个受击单位只领取一次受击回怒判定。</summary>
     public bool TryClaimDamagedRageRoll(BattleUnit target)
     {
-        ArgumentNullException.ThrowIfNull(target);
         return _damagedRageRolledUnitIds.Add(target.Id);
     }
 }

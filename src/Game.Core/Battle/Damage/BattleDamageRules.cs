@@ -6,9 +6,6 @@ public static class BattleDamageRules
 
     public static double GetSkillDamageMultiplier(BattleUnit source, BattleUnit target)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-
         if (string.Equals(source.Id, target.Id, StringComparison.Ordinal))
         {
             return 0d;

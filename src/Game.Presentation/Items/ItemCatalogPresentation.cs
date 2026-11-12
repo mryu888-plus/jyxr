@@ -24,7 +24,6 @@ public static class ItemCatalogPresentation
         IEnumerable<ItemDefinition> items,
         ItemType? itemType)
     {
-        ArgumentNullException.ThrowIfNull(items);
         if (itemType is null)
         {
             return [];
@@ -41,14 +40,12 @@ public static class ItemCatalogPresentation
 
     public static bool Matches(ItemDefinition item, ItemType? itemType, string? tagId)
     {
-        ArgumentNullException.ThrowIfNull(item);
         return (itemType is null || item.Type == itemType.Value) &&
                (tagId is null || item.Tags.Any(tag => string.Equals(tag.Id, tagId, StringComparison.Ordinal)));
     }
 
     public static string FormatCategory(ItemDefinition item)
     {
-        ArgumentNullException.ThrowIfNull(item);
         var itemTypeName = GetItemTypeName(item.Type);
         if (item.Tags.Count == 0)
         {
