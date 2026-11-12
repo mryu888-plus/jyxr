@@ -144,7 +144,9 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
 
             var lifestealRate = Math.Max(
                 0d,
-                takenContext.Source.GetStat(StatType.Lifesteal) + lifestealRateBonus);
+                takenContext.Source.GetStat(StatType.Lifesteal) +
+                (takenContext.Skill?.IntrinsicLifestealRate ?? 0d) +
+                lifestealRateBonus);
             var dealt = engine.TriggerHooks(state, HookTiming.OnDamageDealt, takenContext.Source, context =>
             {
                 context.Source = takenContext.Source;

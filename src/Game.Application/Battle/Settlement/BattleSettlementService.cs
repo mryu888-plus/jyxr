@@ -51,7 +51,7 @@ internal sealed class BattleSettlementService(
             session.Config.BattleGoldDropChance,
             PlayerTeam,
             rewardUnitCount,
-            experienceMultiplier);
+            experienceMultiplier * session.Config.BattleCharacterExperienceMultiplier);
         var drops = OrdinaryBattleLootGenerator.Generate(
             state,
             session.ContentRepository,
@@ -69,7 +69,8 @@ internal sealed class BattleSettlementService(
     {
         ArgumentOutOfRangeException.ThrowIfNegative(level);
         var settlement = OrdinaryBattleVictorySettlementCalculator.Calculate(
-            state, 0d, PlayerTeam, GetRewardUnits(state).Count());
+            state, 0d, PlayerTeam, GetRewardUnits(state).Count(),
+            session.Config.BattleCharacterExperienceMultiplier);
         return settlement with
         {
             Rewards = settlement.Rewards

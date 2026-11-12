@@ -329,6 +329,74 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void CastSkill_AppliesSkillIntrinsicLifesteal_OnceOnActualDamage()
+    {
+        var skillDefinition = TestContentFactory.CreateExternalSkill(
+            "blood_blade",
+            powerBase: 5d,
+            hard: 1d,
+            impactType: SkillImpactType.Single,
+            impactSize: 0,
+            castSize: 3) with { LifestealRate = 0.5d };
+        var hero = CreateUnit(
+            "hero",
+            team: 1,
+            new GridPosition(0, 0),
+            maxHp: 10000,
+            hp: 10,
+            stats: new Dictionary<StatType, int> { [StatType.Bili] = 300, [StatType.Quanzhang] = 300 },
+            externalSkills: [new InitialExternalSkillEntryDefinition(skillDefinition, 10)]);
+        var enemy = CreateUnit("enemy", team: 2, new GridPosition(1, 0), maxHp: 100000);
+        hero.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [hero, enemy]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.CastSkill(state, hero.Id, hero.Character.GetExternalSkills().Single(), new GridPosition(1, 0));
+
+        Assert.True(result.Success);
+        var damage = Assert.Single(result.Messages.OfType<BattleFact>().Where(static fact =>
+            fact.Kind == BattleFactKind.Damaged && fact.UnitId == "enemy")).Damage!.Amount;
+        Assert.True(damage > 1, $"damage={damage}");
+        var lifesteal = Assert.Single(result.Messages.OfType<BattleFact>().Where(static fact =>
+            fact.Kind == BattleFactKind.Lifesteal));
+        Assert.Equal(damage / 2, lifesteal.Lifesteal!.Amount);
+    }
+
+    [Fact]
+    public void CastSkill_ScalesSkillAndCharacterExperience_ByConfiguredMultipliers()
+    {
+        var skillDefinition = TestContentFactory.CreateExternalSkill(
+            "strike",
+            hard: 1d,
+            impactType: SkillImpactType.Single,
+            impactSize: 0,
+            castSize: 3);
+        var hero = CreateUnit(
+            "hero",
+            team: 1,
+            new GridPosition(0, 0),
+            externalSkills: [new InitialExternalSkillEntryDefinition(skillDefinition, 1)]);
+        hero.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine(
+            skillMaxLevelResolver: _ => 20,
+            battleSkillExperienceMultiplier: 10d,
+            battleCharacterExperienceMultiplier: 10d);
+        engine.BeginAction(state, hero.Id);
+        var characterExperienceBefore = hero.Character.Experience;
+
+        var skill = hero.Character.GetExternalSkills().Single();
+        var result = engine.CastSkill(state, hero.Id, skill, new GridPosition(1, 0));
+
+        Assert.True(result.Success);
+        var levelEvent = Assert.Single(result.Messages.OfType<BattleFact>().Where(static battleEvent =>
+            battleEvent.Kind == BattleFactKind.SkillLeveledUp));
+        Assert.Equal(300, levelEvent.SkillExperience!.AddedExperience);
+        Assert.Equal(characterExperienceBefore + 30, hero.Character.Experience);
+    }
+
+    [Fact]
     public void CastSkill_RefreshesBattleResourceLimit_WhenSkillLevelUpChangesMaxHp()
     {
         var skillDefinition = TestContentFactory.CreateExternalSkill(

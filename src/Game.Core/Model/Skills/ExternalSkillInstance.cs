@@ -62,6 +62,7 @@ public sealed class ExternalSkillInstance(
     public override IReadOnlyList<SkillBuffDefinition> Buffs => Definition.Buffs;
     public override bool IsHarmony => Definition.IsHarmony;
     public override double Affinity => Definition.Affinity;
+    public override double IntrinsicLifestealRate => Definition.LifestealRate;
 
     public IReadOnlyList<FormSkillInstance> GetFormSkills() =>
         _formSkills ??= Definition.FormSkills.Select(definition => new FormSkillInstance(definition, this)).ToList();

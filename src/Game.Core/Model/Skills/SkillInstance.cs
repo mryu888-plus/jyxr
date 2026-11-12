@@ -20,6 +20,8 @@ public abstract class SkillInstance(CharacterInstance owner)
     public CharacterInstance Owner { get; } = owner ?? throw new ArgumentNullException(nameof(owner));
 
     public virtual double Bonus => Owner.GetSkillBonusValue(Id);
+    /// <summary>技能自带的吸血倍率，和角色吸血属性、本次攻击的吸血加成合并后结算。</summary>
+    public virtual double IntrinsicLifestealRate => 0d;
     public abstract string Id { get; }
     public virtual string SourceSkillId => Id;
     public abstract string Name { get; }

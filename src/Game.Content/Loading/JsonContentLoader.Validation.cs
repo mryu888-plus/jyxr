@@ -149,6 +149,17 @@ public sealed partial class JsonContentLoader
             ValidateSkillMediaReferences(skill.Id, skill.Icon, skill.Audio, skill.FormSkills, repository);
         }
 
+        foreach (var skill in repository.ExternalSkills.Values)
+        {
+            Ensure(double.IsFinite(skill.LifestealRate) && skill.LifestealRate >= 0d,
+                $"ExternalSkill '{skill.Id}' lifestealRate must be a finite non-negative number.");
+            foreach (var form in skill.FormSkills)
+            {
+                Ensure(form.LifestealRate is null || (double.IsFinite(form.LifestealRate.Value) && form.LifestealRate >= 0d),
+                    $"FormSkill '{form.Id}' lifestealRate must be a finite non-negative number.");
+            }
+        }
+
         foreach (var skill in repository.InternalSkills.Values)
         {
             ValidateSkillMediaReferences(skill.Id, skill.Icon, null, skill.FormSkills, repository);

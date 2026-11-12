@@ -15,7 +15,8 @@ public sealed record FormSkillDefinition(
     string Animation,
     string Audio,
     IReadOnlyList<SkillBuffDefinition> Buffs,
-    double Hard = 1d)
+    double Hard = 1d,
+    double? LifestealRate = null)
 {
     public void Resolve(IContentRepository contentRepository)
     {

@@ -28,7 +28,9 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 				GameRoot.ContentRepository.GetGrowTemplate(
 					character.GrowTemplateId ?? CharacterExperienceProgression.DefaultGrowTemplateId),
 			characterMaxLevelResolver: _ => GameRoot.Config.MaxLevel,
-			battleExperienceEligibilityResolver: unit => unit.Team == PlayerTeam);
+			battleExperienceEligibilityResolver: unit => unit.Team == PlayerTeam,
+			battleSkillExperienceMultiplier: GameRoot.Config.BattleSkillExperienceMultiplier,
+			battleCharacterExperienceMultiplier: GameRoot.Config.BattleCharacterExperienceMultiplier);
 		_battleAgent = new BasicEnemyBattleAgent(
 			new BattleTurnCandidateGenerator(Engine),
 			new BattleAiPolicyResolver(GameRoot.SkillMaxLevelPolicy.GetMaxLevel));

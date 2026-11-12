@@ -60,6 +60,7 @@ public sealed class FormSkillInstance(
 	public override IReadOnlyList<SkillBuffDefinition> Buffs => Definition.Buffs;
 	public override bool IsHarmony => Parent.IsHarmony;
 	public override double Affinity => Parent.Affinity;
+	public override double IntrinsicLifestealRate => Definition.LifestealRate ?? Parent.IntrinsicLifestealRate;
 
 	public override string SourceSkillId => Parent.SourceSkillId;
 

@@ -716,6 +716,32 @@ public sealed class ModSystemTests
         Assert.Equal("change_silver", Assert.IsType<Game.Core.Story.CommandStep>(steps[0]).Call.Root.Name);
     }
 
+    [Theory]
+    [InlineData("legendFemaleVoiceSfxIds")]
+    [InlineData("legendMaleVoiceSfxIds")]
+    [InlineData("legendEffectSfxIds")]
+    public void JsonContentLoader_RejectsEmptyLegendSfxList(string field)
+    {
+        var addonDirectory = CreateSparseAddonDirectory();
+        WritePatch(
+            addonDirectory,
+            $$"""
+            {
+              "format": 2,
+              "operations": [
+                {"op": "set", "target": {"kind": "gameConfig"}, "path": ["{{field}}"], "value": []}
+              ]
+            }
+            """);
+
+        var exception = Assert.ThrowsAny<Exception>(() => new JsonContentLoader().LoadModContent(
+        [
+            new ModContentInput("test-base", PrimaryModDirectoryPath, Required: true),
+            new ModContentInput("test-addon", addonDirectory, Required: false),
+        ]));
+        Assert.Contains(field, exception.Message);
+    }
+
     [Fact]
     public void JsonContentLoader_PatchesKeyedMapLocationById()
     {

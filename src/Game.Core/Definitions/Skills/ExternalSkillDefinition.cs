@@ -20,6 +20,7 @@ public sealed record ExternalSkillDefinition
     public SkillTargetingDefinition Targeting { get; init; } =  SkillTargetingDefinition.None;
     public double PowerBase { get; init; }
     public double PowerStep { get; init; }
+    public double LifestealRate { get; init; }
     public string Audio { get; init; } = "";
     public string Animation { get; init; } = "";
     public IReadOnlyList<SkillBuffDefinition> Buffs { get; init; } = [];

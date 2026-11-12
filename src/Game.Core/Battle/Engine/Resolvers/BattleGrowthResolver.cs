@@ -8,7 +8,9 @@ internal sealed class BattleGrowthResolver(
     Func<SkillInstance, int> skillMaxLevelResolver,
     Func<CharacterInstance, GrowTemplateDefinition> characterGrowTemplateResolver,
     Func<CharacterInstance, int> characterMaxLevelResolver,
-    Func<BattleUnit, bool> eligibilityResolver)
+    Func<BattleUnit, bool> eligibilityResolver,
+    double skillExperienceMultiplier = 1d,
+    double characterExperienceMultiplier = 1d)
 {
     private const int SkillCastCharacterExperience = 3;
 
@@ -16,7 +18,9 @@ internal sealed class BattleGrowthResolver(
     {
         if (!eligibilityResolver(unit)) return;
 
-        var experience = SkillExperienceProgression.CalculateBattleUseExperience(unit.Character);
+        var experience = Scale(
+            SkillExperienceProgression.CalculateBattleUseExperience(unit.Character),
+            skillExperienceMultiplier);
         var progressedSkills = new HashSet<SkillInstance>(ReferenceEqualityComparer.Instance);
         ApplySkillExperience(state, unit, usedSkill, experience, progressedSkills);
 
@@ -61,7 +65,7 @@ internal sealed class BattleGrowthResolver(
     {
         var change = CharacterExperienceProgression.TryAddExperience(
             unit.Character,
-            SkillCastCharacterExperience,
+            Scale(SkillCastCharacterExperience, characterExperienceMultiplier),
             characterMaxLevelResolver(unit.Character),
             () => characterGrowTemplateResolver(unit.Character));
         if (!change.LeveledUp) return;
@@ -77,4 +81,7 @@ internal sealed class BattleGrowthResolver(
                 change.OldLevel,
                 change.NewLevel)));
     }
+
+    private static int Scale(int experience, double multiplier) =>
+        checked((int)Math.Round(experience * multiplier));
 }

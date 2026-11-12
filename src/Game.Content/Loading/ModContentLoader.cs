@@ -736,6 +736,18 @@ internal static class ModContentLoader
             "Game config is missing initialPartyCharacterIds.");
         JsonContentLoader.Ensure(config.SelectablePortraitIds.Count > 0,
             "Game config is missing selectablePortraitIds.");
+        JsonContentLoader.Ensure(config.LegendFemaleVoiceSfxIds.Count > 0,
+            "Game config is missing legendFemaleVoiceSfxIds.");
+        JsonContentLoader.Ensure(config.LegendMaleVoiceSfxIds.Count > 0,
+            "Game config is missing legendMaleVoiceSfxIds.");
+        JsonContentLoader.Ensure(config.LegendEffectSfxIds.Count > 0,
+            "Game config is missing legendEffectSfxIds.");
+        JsonContentLoader.Ensure(double.IsFinite(config.BattleSkillExperienceMultiplier) &&
+                                 config.BattleSkillExperienceMultiplier >= 0d,
+            "Game config battleSkillExperienceMultiplier must be a finite non-negative number.");
+        JsonContentLoader.Ensure(double.IsFinite(config.BattleCharacterExperienceMultiplier) &&
+                                 config.BattleCharacterExperienceMultiplier >= 0d,
+            "Game config battleCharacterExperienceMultiplier must be a finite non-negative number.");
         JsonContentLoader.Ensure(config.EquipmentRandomAffixCountWeights.Count > 0,
             "Game config is missing equipmentRandomAffixCountWeights.");
         var counts = new HashSet<int>();

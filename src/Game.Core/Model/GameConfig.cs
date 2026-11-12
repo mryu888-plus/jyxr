@@ -27,6 +27,10 @@ public sealed class GameConfig
 	public int MaxHpMp { get; init; } = 10000;
 	public int MaxHpMpPerRound { get; init; } = 1000;
 	public int MaxLevel { get; init; } = 30;
+	/// <summary>战斗中施展武学获得的武学经验倍率。</summary>
+	public double BattleSkillExperienceMultiplier { get; init; } = 1d;
+	/// <summary>战斗中获得的人物经验倍率，作用于施展武学和胜利结算。</summary>
+	public double BattleCharacterExperienceMultiplier { get; init; } = 1d;
 	public int BattlePlayerTeam { get; init; } = 1;
 	public double BattleGoldDropChance { get; init; } = 0.005d;
 	public double OrdinaryBattleDropChance { get; init; } = 0.1d;
